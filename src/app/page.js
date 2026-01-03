@@ -336,8 +336,8 @@ export default function Home() {
           >
             {/* Beat Store */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-150"
             >
               <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition">
                 <span className="text-xl">🎵</span>
@@ -353,8 +353,8 @@ export default function Home() {
 
             {/* Mix & Master */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-150"
             >
               <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition">
                 <span className="text-xl">🎚️</span>
@@ -370,8 +370,8 @@ export default function Home() {
 
             {/* Studio Sessions */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-150"
             >
               <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition">
                 <span className="text-xl">🎤</span>
@@ -416,8 +416,8 @@ export default function Home() {
           >
             {/* Beat Card 1 */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-150"
             >
               <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center relative">
                 <span className="text-5xl opacity-30">🎹</span>
@@ -439,8 +439,8 @@ export default function Home() {
 
             {/* Beat Card 2 */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-150"
             >
               <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center relative">
                 <span className="text-5xl opacity-30">🎧</span>
@@ -462,8 +462,8 @@ export default function Home() {
 
             {/* Beat Card 3 */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-150"
             >
               <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center relative">
                 <span className="text-5xl opacity-30">🔥</span>
@@ -485,8 +485,8 @@ export default function Home() {
 
             {/* Beat Card 4 */}
             <motion.div 
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300"
+              whileHover={{ y: -8, transition: { duration: 0.15 } }}
+              className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-150"
             >
               <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center relative">
                 <span className="text-5xl opacity-30">💎</span>

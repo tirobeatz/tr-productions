@@ -95,7 +95,7 @@ export default function Cursor() {
 
   return (
     <>
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes colorPulse {
           0%, 100% {
             border-color: rgba(255, 255, 255, 0.7);
@@ -106,6 +106,13 @@ export default function Cursor() {
             box-shadow: 0 0 12px rgba(167, 139, 250, 0.8);
           }
         }
+        body.is-dragging .custom-cursor {
+          opacity: 0 !important;
+          visibility: hidden !important;
+        }
+        body.is-dragging * {
+          cursor: grabbing !important;
+        }
       `}</style>
 
       {/* Trail segments */}
@@ -113,7 +120,7 @@ export default function Cursor() {
         <div
           key={i}
           ref={(el) => (trailRefs.current[i] = el)}
-          className="fixed pointer-events-none z-[9998] rounded-full transition-opacity duration-200"
+          className="custom-cursor fixed pointer-events-none z-[9998] rounded-full"
           style={{
             width: `${18 - i * 0.4}px`,
             height: `${18 - i * 0.4}px`,
@@ -121,6 +128,7 @@ export default function Cursor() {
             background: `rgba(88, 50, 168, ${0.25 - i * 0.006})`,
             filter: `blur(${2 + i * 0.2}px)`,
             opacity: isMoving && !isHovering ? 1 : 0,
+            transition: 'opacity 0.2s',
           }}
         />
       ))}
@@ -128,7 +136,7 @@ export default function Cursor() {
       {/* Main cursor */}
       <div
         ref={cursorRef}
-        className="fixed w-3 h-3 border rounded-full pointer-events-none z-[9999]"
+        className="custom-cursor fixed w-3 h-3 border rounded-full pointer-events-none z-[9999]"
         style={{
           transform: 'translate(-50%, -50%)',
           borderColor: 'rgba(255, 255, 255, 0.7)',
