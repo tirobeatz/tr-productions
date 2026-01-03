@@ -89,7 +89,6 @@ export default function BeatsPage() {
     { id: 8, title: 'Summer Nights', genre: 'R&B', bpm: 75, key: 'F', price: 39.99, duration: '4:02', tags: ['chill', 'melodic', 'sad'] },
   ]
 
-  // Load favorites and lyrics from localStorage
   useEffect(() => {
     const savedFavorites = localStorage.getItem('tr-favorites')
     const savedLyrics = localStorage.getItem('tr-lyrics')
@@ -97,12 +96,10 @@ export default function BeatsPage() {
     if (savedLyrics) setLyrics(JSON.parse(savedLyrics))
   }, [])
 
-  // Save favorites to localStorage
   useEffect(() => {
     localStorage.setItem('tr-favorites', JSON.stringify(favorites))
   }, [favorites])
 
-  // Save lyrics to localStorage
   useEffect(() => {
     localStorage.setItem('tr-lyrics', JSON.stringify(lyrics))
   }, [lyrics])
@@ -256,22 +253,56 @@ export default function BeatsPage() {
   return (
     <main className="min-h-screen bg-[#050505] text-white relative">
 
-      {/* Background Gradient + Sound Waves */}
+      {/* Background Gradient + Sound Waves - Same as Homepage */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.07] blur-[180px] rounded-full" />
         
+        {/* Subtle sound wave lines */}
         <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <pattern id="soundWaves" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
+            <pattern id="soundWavesBeats" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
               <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
               <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
               <path d="M0 160 Q 100 120, 200 160 T 400 160 T 600 160 T 800 160 T 1000 160 T 1200 160 T 1400 160 T 1600 160 T 1800 160 T 2000 160 T 2200 160 T 2400 160" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
               <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#soundWaves)" />
+          <rect width="100%" height="100%" fill="url(#soundWavesBeats)" />
         </svg>
       </div>
+
+      {/* Noise texture overlay */}
+      <div 
+        className="fixed inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Abstract wave shapes */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <svg className="absolute bottom-0 left-0 w-full h-[60%] opacity-[0.04]" viewBox="0 0 1440 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 300 Q 360 150, 720 300 T 1440 300 L 1440 600 L 0 600 Z" fill="url(#waveGradientBeats)"/>
+          <defs>
+            <linearGradient id="waveGradientBeats" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="transparent" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <svg className="absolute bottom-0 left-0 w-full h-[50%] opacity-[0.03]" viewBox="0 0 1440 500" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 250 Q 480 100, 960 250 T 1920 250 L 1920 500 L 0 500 Z" fill="url(#waveGradient2Beats)"/>
+          <defs>
+            <linearGradient id="waveGradient2Beats" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="transparent" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      {/* Subtle center glow */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.04] blur-[150px] rounded-full pointer-events-none" />
 
       <Header />
 
