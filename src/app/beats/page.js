@@ -2,15 +2,20 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
 export default function BeatsPage() {
+  const [beats, setBeats] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activeGenre, setActiveGenre] = useState('All')
   const [activeTag, setActiveTag] = useState(null)
   const [currentBeat, setCurrentBeat] = useState(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [isHoveringProgress, setIsHoveringProgress] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -21,16 +26,19 @@ export default function BeatsPage() {
   const [favorites, setFavorites] = useState([])
   const [showCopied, setShowCopied] = useState(null)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [volume, setVolume] = useState(1)
+  
+  const audioRef = useRef(null)
   const progressRef = useRef(null)
 
   const genres = ['All', 'Trap', 'Drill', 'R&B', 'Jersey', 'Rap']
-  const allTags = ['dark', 'melodic', 'hard', 'emotional', 'bouncy', 'chill', 'aggressive', 'sad']
+  const allTags = ['dark', 'melodic', 'hard', 'emotional', 'bouncy', 'chill', 'aggressive', 'smooth', 'sad']
 
   const licenses = [
     { 
       id: 'mp3', 
       name: 'MP3 Lease', 
-      price: 29.99, 
+      priceKey: 'price_mp3',
       features: [
         'MP3 File',
         'Use for streaming only',
@@ -42,7 +50,7 @@ export default function BeatsPage() {
     { 
       id: 'wav', 
       name: 'WAV Lease', 
-      price: 49.99, 
+      priceKey: 'price_wav',
       features: [
         'WAV + MP3 Files',
         'Use for streaming & downloads',
@@ -54,7 +62,7 @@ export default function BeatsPage() {
     { 
       id: 'unlimited', 
       name: 'Unlimited', 
-      price: 99.99, 
+      priceKey: 'price_stems',
       features: [
         'WAV + MP3 + Stems',
         'Unlimited streams & downloads',
@@ -66,7 +74,7 @@ export default function BeatsPage() {
     { 
       id: 'exclusive', 
       name: 'Exclusive', 
-      price: 299.99, 
+      priceKey: 'price_exclusive',
       features: [
         'WAV + MP3 + Stems + Trackouts',
         'Full ownership rights',
@@ -78,17 +86,28 @@ export default function BeatsPage() {
     },
   ]
 
-  const beats = [
-    { id: 1, title: 'Midnight Dreams', genre: 'Trap', bpm: 140, key: 'Cm', price: 29.99, duration: '3:24', tags: ['dark', 'melodic', 'emotional'] },
-    { id: 2, title: 'City Lights', genre: 'R&B', bpm: 85, key: 'G', price: 34.99, duration: '2:58', tags: ['chill', 'melodic', 'emotional'] },
-    { id: 3, title: 'No Mercy', genre: 'Drill', bpm: 150, key: 'Fm', price: 29.99, duration: '3:12', tags: ['dark', 'hard', 'aggressive'] },
-    { id: 4, title: 'Diamonds', genre: 'Trap', bpm: 130, key: 'Am', price: 39.99, duration: '3:45', tags: ['melodic', 'bouncy', 'chill'] },
-    { id: 5, title: 'Street Tales', genre: 'Rap', bpm: 90, key: 'Dm', price: 29.99, duration: '3:30', tags: ['dark', 'hard', 'emotional'] },
-    { id: 6, title: 'Vibe Check', genre: 'Jersey', bpm: 110, key: 'Bb', price: 34.99, duration: '2:48', tags: ['bouncy', 'chill', 'melodic'] },
-    { id: 7, title: 'Dark Mode', genre: 'Drill', bpm: 145, key: 'Em', price: 29.99, duration: '3:15', tags: ['dark', 'aggressive', 'hard'] },
-    { id: 8, title: 'Summer Nights', genre: 'R&B', bpm: 75, key: 'F', price: 39.99, duration: '4:02', tags: ['chill', 'melodic', 'sad'] },
-  ]
+  // Fetch beats from Supabase
+  useEffect(() => {
+    fetchBeats()
+  }, [])
 
+  const fetchBeats = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('beats')
+      .select('*')
+      .eq('is_sold', false)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching beats:', error)
+    } else {
+      setBeats(data || [])
+    }
+    setLoading(false)
+  }
+
+  // Load favorites and lyrics from localStorage
   useEffect(() => {
     const savedFavorites = localStorage.getItem('tr-favorites')
     const savedLyrics = localStorage.getItem('tr-lyrics')
@@ -104,34 +123,107 @@ export default function BeatsPage() {
     localStorage.setItem('tr-lyrics', JSON.stringify(lyrics))
   }, [lyrics])
 
+  // Audio event handlers
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const handleTimeUpdate = () => {
+      if (!isDragging) {
+        setCurrentTime(audio.currentTime)
+        setProgress((audio.currentTime / audio.duration) * 100 || 0)
+      }
+    }
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration)
+    }
+
+    const handleEnded = () => {
+      setIsPlaying(false)
+      setProgress(0)
+      setCurrentTime(0)
+    }
+
+    const handlePlay = () => setIsPlaying(true)
+    const handlePause = () => setIsPlaying(false)
+
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+    audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
+    }
+  }, [isDragging])
+
+  // Update volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [volume])
+
   const filteredBeats = beats.filter(beat => {
     const matchesGenre = activeGenre === 'All' || beat.genre === activeGenre
-    const matchesTag = !activeTag || beat.tags.includes(activeTag)
+    const matchesTag = !activeTag || (beat.tags && beat.tags.includes(activeTag))
     const matchesFavorites = !showFavoritesOnly || favorites.includes(beat.id)
     const matchesSearch = searchQuery === '' || 
       beat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       beat.genre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      beat.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      beat.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      (beat.key && beat.key.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (beat.tags && beat.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
     return matchesGenre && matchesTag && matchesSearch && matchesFavorites
   })
 
-  const formatTime = (progressPercent, totalDuration) => {
-    const [mins, secs] = totalDuration.split(':').map(Number)
-    const totalSeconds = mins * 60 + secs
-    const currentSeconds = Math.floor((progressPercent / 100) * totalSeconds)
-    const currentMins = Math.floor(currentSeconds / 60)
-    const currentSecs = currentSeconds % 60
-    return `${currentMins}:${currentSecs.toString().padStart(2, '0')}`
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || seconds === Infinity) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(price || 29.99)
   }
 
   const handlePlay = (beat) => {
+    if (!beat.audio_url) {
+      alert('No audio file available for this beat')
+      return
+    }
+
     if (currentBeat?.id === beat.id) {
-      setIsPlaying(!isPlaying)
+      // Toggle play/pause for same beat
+      if (isPlaying) {
+        audioRef.current?.pause()
+      } else {
+        audioRef.current?.play()
+      }
     } else {
+      // Play new beat
       setCurrentBeat(beat)
-      setIsPlaying(true)
       setProgress(0)
+      setCurrentTime(0)
+      
+      // Small delay to ensure audio source is updated
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.load()
+          audioRef.current.play().catch(err => {
+            console.error('Error playing audio:', err)
+          })
+        }
+      }, 100)
     }
   }
 
@@ -147,7 +239,8 @@ export default function BeatsPage() {
 
   const handleCheckout = () => {
     if (selectedBeat && selectedLicense) {
-      alert(`Proceeding to checkout:\n${selectedBeat.title} - ${selectedLicense.name} ($${selectedLicense.price})`)
+      const price = selectedBeat[selectedLicense.priceKey] || 29.99
+      alert(`Proceeding to checkout:\n${selectedBeat.title} - ${selectedLicense.name} (${formatPrice(price)})`)
       handleCloseModal()
     }
   }
@@ -193,21 +286,32 @@ export default function BeatsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const seekTo = (percent) => {
+    if (audioRef.current && duration) {
+      const time = (percent / 100) * duration
+      audioRef.current.currentTime = time
+      setCurrentTime(time)
+      setProgress(percent)
+    }
+  }
+
   const updateProgress = (clientX) => {
     if (!progressRef.current) return
     const rect = progressRef.current.getBoundingClientRect()
     const percent = ((clientX - rect.left) / rect.width) * 100
-    setProgress(Math.max(0, Math.min(100, percent)))
+    const clampedPercent = Math.max(0, Math.min(100, percent))
+    setProgress(clampedPercent)
+    return clampedPercent
   }
 
   const handleProgressClick = (e) => {
-    updateProgress(e.clientX)
+    const percent = updateProgress(e.clientX)
+    seekTo(percent)
   }
 
   const handleMouseDown = (e) => {
     e.preventDefault()
     setIsDragging(true)
-    document.body.classList.add('is-dragging')
     updateProgress(e.clientX)
   }
 
@@ -217,9 +321,12 @@ export default function BeatsPage() {
       updateProgress(e.clientX)
     }
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e) => {
+      if (isDragging) {
+        const percent = updateProgress(e.clientX)
+        seekTo(percent)
+      }
       setIsDragging(false)
-      document.body.classList.remove('is-dragging')
     }
 
     if (isDragging) {
@@ -231,13 +338,14 @@ export default function BeatsPage() {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isDragging])
+  }, [isDragging, duration])
 
-  useEffect(() => {
-    return () => {
-      document.body.classList.remove('is-dragging')
+  const skipTime = (seconds) => {
+    if (audioRef.current) {
+      const newTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds))
+      audioRef.current.currentTime = newTime
     }
-  }, [])
+  }
 
   useEffect(() => {
     if (selectedBeat) {
@@ -253,11 +361,15 @@ export default function BeatsPage() {
   return (
     <main className="min-h-screen bg-[#050505] text-white relative">
 
-      {/* Background Gradient + Sound Waves - Same as Homepage */}
+      {/* Hidden Audio Element */}
+      <audio ref={audioRef} preload="metadata">
+        {currentBeat?.audio_url && <source src={currentBeat.audio_url} type="audio/mpeg" />}
+      </audio>
+
+      {/* Background Gradient + Sound Waves */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.07] blur-[180px] rounded-full" />
         
-        {/* Subtle sound wave lines */}
         <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="soundWavesBeats" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
@@ -400,125 +512,181 @@ export default function BeatsPage() {
             </div>
           </motion.div>
 
-          {/* Beats Grid */}
-          <motion.div 
-            className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            {filteredBeats.map((beat, index) => (
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
               <motion.div
-                key={beat.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                whileHover={{ y: -8, transition: { duration: 0.15 } }}
-                className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-150"
+                className="w-12 h-12 border-2 border-[#8B5CF6] border-t-transparent rounded-full mb-4"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              />
+              <p className="text-gray-500">Loading beats...</p>
+            </div>
+          ) : (
+            <>
+              {/* Beats Grid */}
+              <motion.div 
+                className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
               >
-                {/* Cover Art */}
-                <div 
-                  className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] flex items-center justify-center relative cursor-pointer"
-                  onClick={() => handlePlay(beat)}
-                >
-                  <span className="text-5xl opacity-30">🎵</span>
-                  
-                  {/* Action Buttons */}
-                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    {/* Favorite */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(beat.id); }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
-                        favorites.includes(beat.id)
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-black/50 text-white hover:bg-black/70'
-                      }`}
+                {filteredBeats.map((beat, index) => (
+                  <motion.div
+                    key={beat.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.05 }}
+                    whileHover={{ y: -8, transition: { duration: 0.15 } }}
+                    className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-150"
+                  >
+                    {/* Cover Art */}
+                    <div 
+                      className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] flex items-center justify-center relative cursor-pointer"
+                      onClick={() => handlePlay(beat)}
                     >
-                      <span className="text-sm">{favorites.includes(beat.id) ? '♥' : '♡'}</span>
-                    </button>
-                    
-                    {/* Share */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleShare(beat); }}
-                      className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition relative"
-                    >
-                      <span className="text-sm">↗</span>
-                      {showCopied === beat.id && (
-                        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-white text-black text-xs px-2 py-1 rounded whitespace-nowrap">
-                          Link copied!
-                        </span>
-                      )}
-                    </button>
-                    
-                    {/* Notepad */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openNotepad(beat); }}
-                      className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition"
-                    >
-                      <span className="text-sm">✎</span>
-                    </button>
-                  </div>
-
-                  {/* Play Overlay */}
-                  <div className={`absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity ${
-                    currentBeat?.id === beat.id && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  }`}>
-                    <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center">
-                      {currentBeat?.id === beat.id && isPlaying ? (
-                        <span className="text-black text-xl">❚❚</span>
+                      {beat.image_url ? (
+                        <img src={beat.image_url} alt={beat.title} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-black text-xl ml-1">▶</span>
+                        <span className="text-5xl opacity-30">🎵</span>
+                      )}
+                      
+                      {/* No Audio Indicator */}
+                      {!beat.audio_url && (
+                        <div className="absolute top-3 left-3 bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded-full">
+                          No Audio
+                        </div>
+                      )}
+                      
+                      {/* Featured Badge */}
+                      {beat.is_featured && (
+                        <div className="absolute top-3 left-3 bg-[#8B5CF6] text-white text-xs px-2 py-1 rounded-full font-medium">
+                          Featured
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons */}
+                      <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        {/* Favorite */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(beat.id); }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
+                            favorites.includes(beat.id)
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-black/50 text-white hover:bg-black/70'
+                          }`}
+                        >
+                          <span className="text-sm">{favorites.includes(beat.id) ? '♥' : '♡'}</span>
+                        </button>
+                        
+                        {/* Share */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleShare(beat); }}
+                          className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition relative"
+                        >
+                          <span className="text-sm">↗</span>
+                          {showCopied === beat.id && (
+                            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-white text-black text-xs px-2 py-1 rounded whitespace-nowrap">
+                              Link copied!
+                            </span>
+                          )}
+                        </button>
+                        
+                        {/* Notepad */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openNotepad(beat); }}
+                          className="w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition"
+                        >
+                          <span className="text-sm">✎</span>
+                        </button>
+                      </div>
+
+                      {/* Play Overlay */}
+                      <div className={`absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity ${
+                        currentBeat?.id === beat.id && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}>
+                        <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center">
+                          {currentBeat?.id === beat.id && isPlaying ? (
+                            <span className="text-black text-xl">❚❚</span>
+                          ) : (
+                            <span className="text-black text-xl ml-1">▶</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Now Playing Indicator */}
+                      {currentBeat?.id === beat.id && isPlaying && (
+                        <div className="absolute bottom-3 left-3 flex items-center gap-1">
+                          <motion.div 
+                            className="w-1 h-3 bg-[#8B5CF6] rounded-full"
+                            animate={{ scaleY: [1, 0.5, 1] }}
+                            transition={{ duration: 0.4, repeat: Infinity }}
+                          />
+                          <motion.div 
+                            className="w-1 h-3 bg-[#8B5CF6] rounded-full"
+                            animate={{ scaleY: [0.5, 1, 0.5] }}
+                            transition={{ duration: 0.4, repeat: Infinity, delay: 0.1 }}
+                          />
+                          <motion.div 
+                            className="w-1 h-3 bg-[#8B5CF6] rounded-full"
+                            animate={{ scaleY: [1, 0.5, 1] }}
+                            transition={{ duration: 0.4, repeat: Infinity, delay: 0.2 }}
+                          />
+                        </div>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Beat Info */}
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold">{beat.title}</h3>
-                    <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-1 rounded-full">{beat.genre}</span>
-                  </div>
-                  <p className="text-gray-500 text-sm mb-3">{beat.bpm} BPM • {beat.key} • {beat.duration}</p>
-                  
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {beat.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">${beat.price}</span>
-                    <button 
-                      onClick={() => handleBuyClick(beat)}
-                      className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
-                    >
-                      Buy Now
-                    </button>
-                  </div>
-                </div>
+                    {/* Beat Info */}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold">{beat.title}</h3>
+                        <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-1 rounded-full">{beat.genre}</span>
+                      </div>
+                      <p className="text-gray-500 text-sm mb-3">{beat.bpm} BPM • {beat.key}</p>
+                      
+                      {/* Tags */}
+                      {beat.tags && beat.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {beat.tags.slice(0, 3).map(tag => (
+                            <span key={tag} className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">{formatPrice(beat.price_mp3)}</span>
+                        <button 
+                          onClick={() => handleBuyClick(beat)}
+                          className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        >
+                          Buy Now
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </motion.div>
 
-          {/* No results message */}
-          {filteredBeats.length === 0 && (
-            <motion.div 
-              className="text-center py-20"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <p className="text-gray-500 text-lg">No beats found matching your search.</p>
-              <button 
-                onClick={() => { setSearchQuery(''); setActiveGenre('All'); setActiveTag(null); setShowFavoritesOnly(false); }}
-                className="mt-4 text-[#8B5CF6] hover:underline"
-              >
-                Clear filters
-              </button>
-            </motion.div>
+              {/* No results message */}
+              {filteredBeats.length === 0 && (
+                <motion.div 
+                  className="text-center py-20"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <span className="text-5xl block mb-4">🎵</span>
+                  <p className="text-gray-500 text-lg mb-4">No beats found matching your search.</p>
+                  <button 
+                    onClick={() => { setSearchQuery(''); setActiveGenre('All'); setActiveTag(null); setShowFavoritesOnly(false); }}
+                    className="text-[#8B5CF6] hover:underline"
+                  >
+                    Clear filters
+                  </button>
+                </motion.div>
+              )}
+            </>
           )}
 
         </div>
@@ -633,52 +801,61 @@ Pro tip: Play the beat while you write to match the flow and vibe."
               <div className="p-8">
                 {/* Beat Info Header */}
                 <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/10">
-                  <div className="w-24 h-24 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-4xl">🎵</span>
+                  <div className="w-24 h-24 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {selectedBeat.image_url ? (
+                      <img src={selectedBeat.image_url} alt={selectedBeat.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl">🎵</span>
+                    )}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold mb-2">{selectedBeat.title}</h2>
                     <p className="text-gray-500">{selectedBeat.genre} • {selectedBeat.bpm} BPM • {selectedBeat.key}</p>
-                    <div className="flex gap-2 mt-2">
-                      {selectedBeat.tags.map(tag => (
-                        <span key={tag} className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
+                    {selectedBeat.tags && selectedBeat.tags.length > 0 && (
+                      <div className="flex gap-2 mt-2">
+                        {selectedBeat.tags.map(tag => (
+                          <span key={tag} className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* License Options */}
                 <h3 className="text-lg font-semibold mb-6">Select License</h3>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                  {licenses.map((license) => (
-                    <div
-                      key={license.id}
-                      onClick={() => setSelectedLicense(license)}
-                      className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-150 ${
-                        selectedLicense?.id === license.id
-                          ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                          : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                      } ${license.highlight ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}
-                    >
-                      {license.highlight && (
-                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-xs px-3 py-1 rounded-full">
-                          Best Value
-                        </span>
-                      )}
-                      <h4 className="font-semibold mb-1">{license.name}</h4>
-                      <p className="text-2xl font-bold mb-4">${license.price}</p>
-                      <ul className="space-y-2">
-                        {license.features.map((feature, i) => (
-                          <li key={i} className="text-xs text-gray-400 flex items-start gap-2">
-                            <span className="text-[#8B5CF6] mt-0.5">✓</span>
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                  {licenses.map((license) => {
+                    const price = selectedBeat[license.priceKey] || 29.99
+                    return (
+                      <div
+                        key={license.id}
+                        onClick={() => setSelectedLicense(license)}
+                        className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-150 ${
+                          selectedLicense?.id === license.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                            : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                        } ${license.highlight ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}
+                      >
+                        {license.highlight && (
+                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-xs px-3 py-1 rounded-full">
+                            Best Value
+                          </span>
+                        )}
+                        <h4 className="font-semibold mb-1">{license.name}</h4>
+                        <p className="text-2xl font-bold mb-4">{formatPrice(price)}</p>
+                        <ul className="space-y-2">
+                          {license.features.map((feature, i) => (
+                            <li key={i} className="text-xs text-gray-400 flex items-start gap-2">
+                              <span className="text-[#8B5CF6] mt-0.5">✓</span>
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* Checkout Button */}
@@ -686,7 +863,7 @@ Pro tip: Play the beat while you write to match the flow and vibe."
                   <div>
                     {selectedLicense && (
                       <p className="text-gray-400">
-                        Total: <span className="text-white font-bold text-xl">${selectedLicense.price}</span>
+                        Total: <span className="text-white font-bold text-xl">{formatPrice(selectedBeat[selectedLicense.priceKey])}</span>
                       </p>
                     )}
                   </div>
@@ -709,124 +886,150 @@ Pro tip: Play the beat while you write to match the flow and vibe."
       </AnimatePresence>
 
       {/* Sticky Audio Player */}
-      {currentBeat && (
-        <motion.div 
-          className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10"
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between gap-6">
-              
-              {/* Track Info */}
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg">🎵</span>
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-semibold text-sm truncate">{currentBeat.title}</h4>
-                  <p className="text-gray-500 text-xs">{currentBeat.genre} • {currentBeat.bpm} BPM • {currentBeat.key}</p>
-                </div>
-              </div>
-
-              {/* Player Controls */}
-              <div className="flex items-center gap-4 flex-1 max-w-xl">
+      <AnimatePresence>
+        {currentBeat && (
+          <motion.div 
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10"
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex items-center justify-between gap-6">
                 
-                {/* Skip Back 15s */}
-                <button 
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition flex-shrink-0"
-                  onClick={() => setProgress(Math.max(0, progress - 15))}
-                  title="Skip back 15s"
-                >
-                  <span className="text-xs font-bold">-15</span>
-                </button>
+                {/* Track Info */}
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {currentBeat.image_url ? (
+                      <img src={currentBeat.image_url} alt={currentBeat.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg">🎵</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-sm truncate">{currentBeat.title}</h4>
+                    <p className="text-gray-500 text-xs">{currentBeat.genre} • {currentBeat.bpm} BPM • {currentBeat.key}</p>
+                  </div>
+                </div>
 
-                {/* Play/Pause */}
-                <button 
-                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 hover:scale-105 transition"
-                  onClick={() => setIsPlaying(!isPlaying)}
-                >
-                  {isPlaying ? (
-                    <span className="text-black text-sm">❚❚</span>
-                  ) : (
-                    <span className="text-black text-sm ml-0.5">▶</span>
-                  )}
-                </button>
-
-                {/* Skip Forward 15s */}
-                <button 
-                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition flex-shrink-0"
-                  onClick={() => setProgress(Math.min(100, progress + 15))}
-                  title="Skip forward 15s"
-                >
-                  <span className="text-xs font-bold">+15</span>
-                </button>
-                
-                {/* Progress Bar */}
-                <div className="flex-1 hidden sm:block select-none">
-                  <div 
-                    ref={progressRef}
-                    className="relative h-8 flex items-center group"
-                    onClick={handleProgressClick}
-                    onMouseDown={handleMouseDown}
-                    onMouseEnter={() => setIsHoveringProgress(true)}
-                    onMouseLeave={() => !isDragging && setIsHoveringProgress(false)}
+                {/* Player Controls */}
+                <div className="flex items-center gap-4 flex-1 max-w-xl">
+                  
+                  {/* Skip Back 15s */}
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition flex-shrink-0"
+                    onClick={() => skipTime(-15)}
+                    title="Skip back 15s"
                   >
-                    {/* Track background */}
-                    <div className={`absolute left-0 right-0 bg-white/10 rounded-full transition-all duration-75 ${
-                      isHoveringProgress || isDragging ? 'h-2' : 'h-1'
-                    }`}>
-                      {/* Progress fill */}
+                    <span className="text-xs font-bold">-15</span>
+                  </button>
+
+                  {/* Play/Pause */}
+                  <button 
+                    className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 hover:scale-105 transition"
+                    onClick={() => handlePlay(currentBeat)}
+                  >
+                    {isPlaying ? (
+                      <span className="text-black text-sm">❚❚</span>
+                    ) : (
+                      <span className="text-black text-sm ml-0.5">▶</span>
+                    )}
+                  </button>
+
+                  {/* Skip Forward 15s */}
+                  <button 
+                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition flex-shrink-0"
+                    onClick={() => skipTime(15)}
+                    title="Skip forward 15s"
+                  >
+                    <span className="text-xs font-bold">+15</span>
+                  </button>
+                  
+                  {/* Progress Bar */}
+                  <div className="flex-1 hidden sm:block select-none">
+                    <div 
+                      ref={progressRef}
+                      className="relative h-8 flex items-center group cursor-pointer"
+                      onClick={handleProgressClick}
+                      onMouseDown={handleMouseDown}
+                      onMouseEnter={() => setIsHoveringProgress(true)}
+                      onMouseLeave={() => !isDragging && setIsHoveringProgress(false)}
+                    >
+                      {/* Track background */}
+                      <div className={`absolute left-0 right-0 bg-white/10 rounded-full transition-all duration-75 ${
+                        isHoveringProgress || isDragging ? 'h-2' : 'h-1'
+                      }`}>
+                        {/* Progress fill */}
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] rounded-full"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      
+                      {/* Scrubber handle */}
                       <div 
-                        className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] rounded-full"
-                        style={{ width: `${progress}%` }}
-                      />
+                        className={`absolute transition-opacity duration-75 ${
+                          isHoveringProgress || isDragging 
+                            ? 'opacity-100' 
+                            : 'opacity-0'
+                        }`}
+                        style={{ 
+                          left: `${progress}%`,
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      >
+                        <div 
+                          className={`w-4 h-4 bg-white rounded-full shadow-lg shadow-[#8B5CF6]/50 transition-transform duration-75 ${
+                            isDragging ? 'scale-125' : ''
+                          }`}
+                        />
+                      </div>
                     </div>
                     
-                    {/* Scrubber handle */}
-                    <div 
-                      className={`absolute transition-opacity duration-75 ${
-                        isHoveringProgress || isDragging 
-                          ? 'opacity-100' 
-                          : 'opacity-0'
-                      }`}
-                      style={{ 
-                        left: `${progress}%`,
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    >
-                      <div 
-                        className={`w-4 h-4 bg-white rounded-full shadow-lg shadow-[#8B5CF6]/50 transition-transform duration-75 ${
-                          isDragging ? 'scale-125' : ''
-                        }`}
-                      />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>{formatTime(progress, currentBeat.duration)}</span>
-                    <span>{currentBeat.duration}</span>
+
+                  {/* Volume */}
+                  <div className="hidden md:flex items-center gap-2">
+                    <button 
+                      onClick={() => setVolume(volume > 0 ? 0 : 1)}
+                      className="text-gray-400 hover:text-white transition"
+                    >
+                      {volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={volume}
+                      onChange={(e) => setVolume(parseFloat(e.target.value))}
+                      className="w-20 accent-[#8B5CF6]"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* Buy Section */}
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <span className="font-bold hidden sm:block">${currentBeat.price}</span>
-                <button 
-                  onClick={() => handleBuyClick(currentBeat)}
-                  className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-5 py-2 rounded-full text-sm font-medium transition"
-                >
-                  Buy Now
-                </button>
-              </div>
+                {/* Buy Section */}
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <span className="font-bold hidden sm:block">{formatPrice(currentBeat.price_mp3)}</span>
+                  <button 
+                    onClick={() => handleBuyClick(currentBeat)}
+                    className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-5 py-2 rounded-full text-sm font-medium transition"
+                  >
+                    Buy Now
+                  </button>
+                </div>
 
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Footer />
 
