@@ -1,0 +1,887 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
+
+export default function MixingPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    trackName: '',
+    genre: '',
+    reference: '',
+    notes: '',
+    rushDelivery: false
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [activeFaq, setActiveFaq] = useState(null)
+  const [activeGenre, setActiveGenre] = useState(null)
+  
+  // Audio player state
+  const [audioMode, setAudioMode] = useState('mixed') // 'raw' or 'mixed'
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const progressInterval = useRef(null)
+
+  const MIX_MASTER_PRICE = 60
+  const RUSH_FEE = 30
+
+  const stats = [
+    { value: '150+', label: 'Tracks Mixed' },
+    { value: '80+', label: 'Happy Artists' },
+    { value: '48h', label: 'Avg. Delivery' },
+    { value: '100%', label: 'Satisfaction' }
+  ]
+
+  const genres = [
+    { name: 'Hip-Hop', icon: '🎤', description: 'Hard-hitting drums, punchy 808s, crisp vocals' },
+    { name: 'Trap', icon: '🔥', description: 'Heavy bass, sharp hi-hats, atmospheric vibes' },
+    { name: 'Drill', icon: '💀', description: 'Sliding 808s, dark melodies, aggressive energy' },
+    { name: 'R&B', icon: '💜', description: 'Smooth vocals, warm tones, lush harmonies' },
+    { name: 'Pop', icon: '✨', description: 'Radio-ready polish, bright and punchy' },
+    { name: 'Afrobeat', icon: '🌍', description: 'Rhythmic percussion, vibrant energy' }
+  ]
+
+  const process = [
+    { step: '01', title: 'Upload', description: 'Send your files via the form or WeTransfer', icon: '📤', time: 'Day 1' },
+    { step: '02', title: 'Review', description: 'I listen and confirm the project details', icon: '🎧', time: 'Day 1' },
+    { step: '03', title: 'Mix', description: 'Balancing, EQ, compression, effects', icon: '🎚️', time: 'Day 2' },
+    { step: '04', title: 'Master', description: 'Final polish and loudness optimization', icon: '💎', time: 'Day 2-3' },
+    { step: '05', title: 'Deliver', description: 'You receive WAV + MP3 files', icon: '✅', time: 'Day 3' }
+  ]
+
+  const whyWorkWithMe = [
+    { 
+      icon: '👤', 
+      title: 'Personal Attention', 
+      description: 'Not a big studio factory. I personally work on every track and treat it like my own.',
+      highlight: 'Every mix gets my full focus'
+    },
+    { 
+      icon: '💬', 
+      title: 'Direct Communication', 
+      description: 'No middleman, no waiting days for replies. You talk directly to me throughout the process.',
+      highlight: 'Quick responses, always'
+    },
+    { 
+      icon: '🎵', 
+      title: 'Genre Expertise', 
+      description: 'I actually listen to Hip-Hop, Trap, Drill, and R&B daily. I know what makes these genres hit.',
+      highlight: 'I understand the sound you want'
+    },
+    { 
+      icon: '💰', 
+      title: 'Fair & Transparent', 
+      description: 'One price, no hidden fees, no upsells. What you see is what you pay.',
+      highlight: 'Just €60 per track'
+    }
+  ]
+
+  const recentProjects = [
+    { title: 'Midnight Run', artist: 'Jay Flex', genre: 'Trap', color: 'from-purple-500/20' },
+    { title: 'City Dreams', artist: 'Luna', genre: 'R&B', color: 'from-pink-500/20' },
+    { title: 'No Cap', artist: 'Dre Money', genre: 'Hip-Hop', color: 'from-blue-500/20' },
+    { title: 'Slide', artist: 'K-Drill', genre: 'Drill', color: 'from-red-500/20' }
+  ]
+
+  const testimonials = [
+    { name: 'Jay Flex', role: 'Rapper', text: 'TR made my vocals sit perfectly in the mix. The 808s hit hard and everything sounds professional. Will be back!', avatar: 'JF' },
+    { name: 'Luna Marie', role: 'Singer', text: 'Finally found someone who understands R&B vocals. The warmth and clarity is exactly what I wanted.', avatar: 'LM' },
+    { name: 'Dre Money', role: 'Artist', text: 'Quick turnaround, great communication, and the final mix was fire. 10/10 recommend.', avatar: 'DM' }
+  ]
+
+  const faqs = [
+    { question: 'What files do I need to send?', answer: 'At minimum: your raw vocal recording (WAV preferred) and the beat/instrumental. If you have stems (separate tracks for drums, melody, bass), even better! The more I have to work with, the better the result.' },
+    { question: 'How long does it take?', answer: 'Standard delivery is 2-3 business days. Need it faster? Rush delivery (24-48 hours) is available for an additional €30.' },
+    { question: 'What if I need changes?', answer: 'One revision is included in the price. After hearing the first mix, you can request specific adjustments. Additional revisions are €15 each.' },
+    { question: 'Can you mix tracks recorded elsewhere?', answer: 'Absolutely! Most of my clients record at home or other studios. As long as the recordings are decent quality, I can work with them.' },
+    { question: 'Do you offer bulk discounts?', answer: 'Yes! For EP/album projects (5+ tracks), I offer 15% off. Get in touch to discuss your project.' },
+    { question: 'What do I get when it is done?', answer: 'You receive the final mix in WAV (high quality) and MP3 (streaming ready) formats. Ready to upload to Spotify, Apple Music, etc.' }
+  ]
+
+  const trustBadges = [
+    { icon: '⚡', title: 'Fast Delivery', subtitle: '2-3 days standard' },
+    { icon: '🔄', title: 'Free Revision', subtitle: '1 included' },
+    { icon: '💬', title: 'Direct Contact', subtitle: 'No middleman' },
+    { icon: '✅', title: 'Satisfaction', subtitle: 'Guaranteed' }
+  ]
+
+  // Audio player functions
+  const togglePlay = () => {
+    if (isPlaying) {
+      clearInterval(progressInterval.current)
+      setIsPlaying(false)
+    } else {
+      setIsPlaying(true)
+      progressInterval.current = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(progressInterval.current)
+            setIsPlaying(false)
+            return 0
+          }
+          return prev + 0.5
+        })
+      }, 100)
+    }
+  }
+
+  const switchAudioMode = (mode) => {
+    setAudioMode(mode)
+    setProgress(0)
+    if (isPlaying) {
+      clearInterval(progressInterval.current)
+      setIsPlaying(false)
+    }
+  }
+
+  const formatTime = (percent) => {
+    const totalSeconds = 30
+    const currentSeconds = Math.floor((percent / 100) * totalSeconds)
+    const mins = Math.floor(currentSeconds / 60)
+    const secs = currentSeconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const calculateTotal = () => {
+    return MIX_MASTER_PRICE + (formData.rushDelivery ? RUSH_FEE : 0)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    alert('Request submitted! I will get back to you within 24 hours at ' + formData.email)
+    setIsSubmitting(false)
+    setSubmitted(true)
+    setFormData({ name: '', email: '', trackName: '', genre: '', reference: '', notes: '', rushDelivery: false })
+    setTimeout(() => setSubmitted(false), 5000)
+  }
+
+  return (
+    <main className="min-h-screen bg-[#050505] text-white relative">
+      
+      {/* Background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.07] blur-[180px] rounded-full" />
+        
+        <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="soundWavesMix" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
+              <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
+              <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
+              <path d="M0 160 Q 100 120, 200 160 T 400 160 T 600 160 T 800 160 T 1000 160 T 1200 160 T 1400 160 T 1600 160 T 1800 160 T 2000 160 T 2200 160 T 2400 160" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#soundWavesMix)" />
+        </svg>
+      </div>
+
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <svg className="absolute bottom-0 left-0 w-full h-[60%] opacity-[0.04]" viewBox="0 0 1440 600" preserveAspectRatio="none">
+          <path d="M0 300 Q 360 150, 720 300 T 1440 300 L 1440 600 L 0 600 Z" fill="url(#waveGradientMix)"/>
+          <defs>
+            <linearGradient id="waveGradientMix" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="transparent" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.04] blur-[150px] rounded-full pointer-events-none" />
+
+      <Header />
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <p className="text-[#8B5CF6] font-medium mb-4 tracking-[0.2em] uppercase text-xs">Online Mixing Service</p>
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
+                Make Your Track <span className="text-[#8B5CF6]">Sound Pro</span>
+              </h1>
+              <p className="text-lg text-gray-400 mb-8 leading-relaxed">
+                Professional mixing and mastering for artists who want radio-ready sound. 
+                Send your files, get back a polished track.
+              </p>
+              <div className="flex flex-wrap gap-4 mb-8">
+                <a href="#submit" className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-8 py-4 rounded-full font-semibold transition">
+                  Get Started - €{MIX_MASTER_PRICE}
+                </a>
+                <a href="#process" className="border border-white/20 hover:border-white/40 hover:bg-white/5 px-8 py-4 rounded-full font-semibold transition">
+                  See How It Works
+                </a>
+              </div>
+              
+              {/* Trust Badges */}
+              <div className="flex flex-wrap gap-6">
+                {trustBadges.map((badge, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="text-xl">{badge.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium">{badge.title}</p>
+                      <p className="text-xs text-gray-500">{badge.subtitle}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Functional Before/After Player */}
+            <motion.div
+              className="relative"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="relative bg-white/[0.02] border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-sm text-gray-500">Before & After</p>
+                    <p className="font-semibold">Hear The Difference</p>
+                  </div>
+                </div>
+
+                {/* Toggle Switch */}
+                <div className="flex bg-white/5 rounded-full p-1 mb-6">
+                  <button
+                    onClick={() => switchAudioMode('raw')}
+                    className={`flex-1 py-3 px-4 rounded-full text-sm font-medium transition ${
+                      audioMode === 'raw' 
+                        ? 'bg-white/10 text-white' 
+                        : 'text-gray-500 hover:text-white'
+                    }`}
+                  >
+                    🔇 Raw Recording
+                  </button>
+                  <button
+                    onClick={() => switchAudioMode('mixed')}
+                    className={`flex-1 py-3 px-4 rounded-full text-sm font-medium transition ${
+                      audioMode === 'mixed' 
+                        ? 'bg-[#8B5CF6] text-white' 
+                        : 'text-gray-500 hover:text-white'
+                    }`}
+                  >
+                    🔊 Mixed & Mastered
+                  </button>
+                </div>
+
+                {/* Waveform Visualization */}
+                <div className={`relative h-24 flex items-center justify-center gap-[2px] mb-6 transition-opacity ${
+                  audioMode === 'raw' ? 'opacity-50' : 'opacity-100'
+                }`}>
+                  {[...Array(50)].map((_, i) => {
+                    const baseHeight = audioMode === 'mixed' 
+                      ? Math.sin(i * 0.3) * 30 + 50 
+                      : Math.sin(i * 0.3) * 15 + 25
+                    const isActive = (i / 50) * 100 <= progress
+                    
+                    return (
+                      <motion.div
+                        key={i}
+                        className={`w-1 rounded-full transition-colors ${
+                          isActive 
+                            ? 'bg-gradient-to-t from-[#8B5CF6] to-[#A78BFA]' 
+                            : 'bg-white/20'
+                        }`}
+                        animate={isPlaying ? {
+                          height: [baseHeight, baseHeight + Math.random() * 20, baseHeight]
+                        } : { height: baseHeight }}
+                        transition={{
+                          duration: 0.3,
+                          repeat: isPlaying ? Infinity : 0,
+                          delay: i * 0.02
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+
+                {/* Status Badge */}
+                <div className="flex justify-center mb-4">
+                  <span className={`px-4 py-1 rounded-full text-xs font-medium ${
+                    audioMode === 'mixed' 
+                      ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' 
+                      : 'bg-white/10 text-gray-400'
+                  }`}>
+                    {audioMode === 'mixed' ? 'Professional Mix' : 'Unprocessed Audio'}
+                  </span>
+                </div>
+
+                {/* Playback Controls */}
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={togglePlay}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition ${
+                      audioMode === 'mixed' 
+                        ? 'bg-[#8B5CF6] hover:bg-[#7C3AED]' 
+                        : 'bg-white/10 hover:bg-white/20'
+                    }`}
+                  >
+                    {isPlaying ? (
+                      <span className="text-lg">❚❚</span>
+                    ) : (
+                      <span className="text-lg ml-1">▶</span>
+                    )}
+                  </button>
+                  <div className="flex-1">
+                    <div 
+                      className="h-2 bg-white/10 rounded-full overflow-hidden cursor-pointer"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        const percent = ((e.clientX - rect.left) / rect.width) * 100
+                        setProgress(percent)
+                      }}
+                    >
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          audioMode === 'mixed' ? 'bg-[#8B5CF6]' : 'bg-white/40'
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-2 text-xs text-gray-500">
+                      <span>{formatTime(progress)}</span>
+                      <span>0:30</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-center text-gray-600 text-xs mt-6">
+                  Demo audio - Your track could sound like this
+                </p>
+              </div>
+
+              {/* Price Badge */}
+              <motion.div
+                className="absolute -top-4 -right-4 bg-[#8B5CF6] text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg"
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                €{MIX_MASTER_PRICE}/track
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="relative py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <p className="text-4xl md:text-5xl font-bold text-[#8B5CF6] mb-2">{stat.value}</p>
+                <p className="text-gray-500 text-sm">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Why Work With Me */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Difference</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Why Work With Me</h2>
+            <p className="text-gray-500 max-w-lg mx-auto">Not just another mixing service. Here is what sets me apart.</p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {whyWorkWithMe.map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-[#8B5CF6]/30 transition group"
+              >
+                <div className="flex items-start gap-5">
+                  <div className="w-14 h-14 bg-[#8B5CF6]/10 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:bg-[#8B5CF6]/20 transition">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
+                    <p className="text-gray-400 mb-3 leading-relaxed">{item.description}</p>
+                    <p className="text-[#8B5CF6] text-sm font-medium">{item.highlight}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Genre Specialties */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Specialties</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Genres I Mix</h2>
+            <p className="text-gray-500 max-w-lg mx-auto">Every genre has its own sound. I know what makes each one hit.</p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {genres.map((genre, index) => (
+              <motion.div
+                key={genre.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                onClick={() => setActiveGenre(activeGenre === genre.name ? null : genre.name)}
+                className={`relative bg-white/[0.02] border rounded-2xl p-6 cursor-pointer transition-all ${
+                  activeGenre === genre.name 
+                    ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/5' 
+                    : 'border-white/5 hover:border-white/10'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-4xl">{genre.icon}</span>
+                  <div>
+                    <h3 className="font-semibold text-lg">{genre.name}</h3>
+                    <p className="text-gray-500 text-sm">{genre.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Process Timeline */}
+      <section id="process" className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Process</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">From Raw to Radio-Ready</h2>
+            <p className="text-gray-500">Simple 5-step process. You send files, I deliver hits.</p>
+          </motion.div>
+
+          <div className="relative">
+            <div className="hidden md:block absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#8B5CF6]/30 to-transparent" />
+            
+            <div className="grid md:grid-cols-5 gap-6">
+              {process.map((item, index) => (
+                <motion.div
+                  key={item.step}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative text-center"
+                >
+                  <div className="relative z-10 w-16 h-16 mx-auto mb-4 bg-[#0a0a0a] border-2 border-[#8B5CF6]/50 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">{item.icon}</span>
+                  </div>
+                  
+                  <span className="text-[#8B5CF6] text-xs font-bold">{item.time}</span>
+                  <h3 className="font-semibold mt-2 mb-1">{item.title}</h3>
+                  <p className="text-gray-500 text-sm">{item.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Recent Projects */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Portfolio</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Recent Mixes</h2>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recentProjects.map((project, index) => (
+              <motion.div
+                key={project.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -8 }}
+                className="group cursor-pointer"
+              >
+                <div className={`aspect-square bg-gradient-to-br ${project.color} to-[#050505] rounded-2xl flex items-center justify-center mb-4 border border-white/5 group-hover:border-white/20 transition relative overflow-hidden`}>
+                  <span className="text-5xl opacity-30">🎵</span>
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                      <span className="text-black ml-1">▶</span>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="font-semibold">{project.title}</h3>
+                <p className="text-gray-500 text-sm">{project.artist} - {project.genre}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Card */}
+      <section id="pricing" className="relative py-20 px-6">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            className="bg-gradient-to-br from-[#8B5CF6]/10 to-transparent border border-[#8B5CF6]/20 rounded-3xl p-8 md:p-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="text-center mb-8">
+              <span className="text-6xl block mb-4">🎚️</span>
+              <h2 className="text-3xl font-bold mb-2">Mix & Master</h2>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-5xl font-bold">€{MIX_MASTER_PRICE}</span>
+                <span className="text-gray-400">per track</span>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4 mb-8">
+              <div className="bg-white/5 rounded-xl p-4">
+                <p className="font-medium mb-2">Standard Delivery</p>
+                <p className="text-gray-500 text-sm">2-3 business days</p>
+                <p className="text-[#8B5CF6] font-semibold mt-2">Included</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-[#8B5CF6]/20">
+                <p className="font-medium mb-2">Rush Delivery ⚡</p>
+                <p className="text-gray-500 text-sm">24-48 hours</p>
+                <p className="text-[#8B5CF6] font-semibold mt-2">+€{RUSH_FEE}</p>
+              </div>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              {['Full mixing & mastering', 'WAV + MP3 delivery', '1 revision included', 'Direct communication', 'Streaming-ready format'].map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-sm">
+                  <span className="text-[#8B5CF6]">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <a href="#submit" className="block w-full bg-[#8B5CF6] hover:bg-[#7C3AED] py-4 rounded-full font-semibold text-center transition">
+              Get Started Now
+            </a>
+
+            <p className="text-center text-gray-500 text-xs mt-4">
+              15% discount on 5+ tracks
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Reviews</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Artists Love It</h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white/[0.02] border border-white/5 rounded-2xl p-6"
+              >
+                <div className="flex gap-1 mb-4 text-[#8B5CF6]">
+                  {[...Array(5)].map((_, i) => <span key={i}>★</span>)}
+                </div>
+                <p className="text-gray-300 mb-6 text-sm leading-relaxed">"{testimonial.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#8B5CF6]/20 rounded-full flex items-center justify-center text-sm font-medium">
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{testimonial.name}</p>
+                    <p className="text-gray-500 text-xs">{testimonial.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Submit Form */}
+      <section id="submit" className="relative py-20 px-6">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Get Started</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Submit Your Track</h2>
+            <p className="text-gray-500">Fill out the form and I will get back to you within 24 hours.</p>
+          </motion.div>
+
+          <motion.div
+            className="bg-white/[0.02] border border-white/10 rounded-3xl p-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {submitted ? (
+              <div className="text-center py-12">
+                <span className="text-6xl block mb-4">✅</span>
+                <h3 className="text-2xl font-bold mb-2">Request Submitted!</h3>
+                <p className="text-gray-500">I will review your project and get back to you soon.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Track Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.trackName}
+                      onChange={(e) => setFormData({ ...formData, trackName: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                      placeholder="Song title"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Genre *</label>
+                    <select
+                      required
+                      value={formData.genre}
+                      onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                    >
+                      <option value="">Select genre</option>
+                      <option value="Hip-Hop">Hip-Hop</option>
+                      <option value="Trap">Trap</option>
+                      <option value="Drill">Drill</option>
+                      <option value="R&B">R&B</option>
+                      <option value="Pop">Pop</option>
+                      <option value="Afrobeat">Afrobeat</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Reference Track (optional)</label>
+                  <input
+                    type="text"
+                    value={formData.reference}
+                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                    placeholder="Link to a song with a similar vibe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Notes</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 transition resize-none"
+                    placeholder="Any specific requests or vision for the track..."
+                  />
+                </div>
+
+                {/* Rush Delivery Toggle */}
+                <div
+                  onClick={() => setFormData({ ...formData, rushDelivery: !formData.rushDelivery })}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    formData.rushDelivery
+                      ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30'
+                      : 'bg-white/5 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">⚡</span>
+                      <div>
+                        <p className="font-medium">Rush Delivery</p>
+                        <p className="text-gray-500 text-sm">Get your mix in 24-48 hours</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[#8B5CF6] font-semibold">+€{RUSH_FEE}</span>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
+                        formData.rushDelivery ? 'bg-[#8B5CF6] border-[#8B5CF6]' : 'border-white/30'
+                      }`}>
+                        {formData.rushDelivery && <span className="text-xs">✓</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="bg-white/5 rounded-xl p-4 flex items-center justify-between">
+                  <span className="text-gray-400">Total</span>
+                  <span className="text-2xl font-bold text-[#8B5CF6]">€{calculateTotal()}</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full py-4 rounded-full font-semibold transition ${
+                    isSubmitting
+                      ? 'bg-white/10 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
+                  }`}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+
+                <p className="text-center text-gray-600 text-xs">
+                  After submitting, send your files to mix@trproductions.de or via WeTransfer
+                </p>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">FAQ</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Questions?</h2>
+          </motion.div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden"
+              >
+                <button
+                  onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                  className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-white/[0.02] transition"
+                >
+                  <span className="font-medium pr-4">{faq.question}</span>
+                  <span className={`text-[#8B5CF6] transition-transform text-xl ${activeFaq === index ? 'rotate-45' : ''}`}>+</span>
+                </button>
+                <AnimatePresence>
+                  {activeFaq === index && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="px-6 pb-5 text-gray-400 text-sm leading-relaxed">{faq.answer}</div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/20 rounded-3xl p-12 text-center">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Ready to Sound Pro?</h2>
+            <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+              Submit your track today. Professional mix and master for just €{MIX_MASTER_PRICE}.
+            </p>
+            <a href="#submit" className="inline-block bg-[#8B5CF6] hover:bg-[#7C3AED] px-8 py-4 rounded-full font-semibold transition">
+              Get Started Now
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </main>
+  )
+}
