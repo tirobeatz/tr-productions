@@ -15,7 +15,6 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Prevent scroll when menu is open
   useEffect(() => {
     if (menuOpen) {
       document.body.style.overflow = 'hidden'
@@ -66,14 +65,6 @@ export default function Header() {
               Contact
             </a>
           </div>
-
-          {/* Desktop CTA Button */}
-          <a 
-            href="/contact" 
-            className="hidden md:block bg-white text-black px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 hover:bg-gray-100 hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.4)]"
-          >
-            Book Now
-          </a>
 
           {/* Mobile Hamburger Button */}
           <button 
@@ -127,13 +118,6 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
           >
             Contact
-          </a>
-          <a 
-            href="/contact" 
-            className="mt-8 bg-[#8B5CF6] hover:bg-[#7C3AED] px-8 py-4 rounded-full font-semibold transition"
-            onClick={() => setMenuOpen(false)}
-          >
-            Book Now
           </a>
         </div>
       </div>

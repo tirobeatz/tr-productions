@@ -67,3 +67,13 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #7C3AED;
 }
+
+/* Flip card styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
