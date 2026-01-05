@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -14,6 +15,7 @@ export default function ContactPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
   const [activeFaq, setActiveFaq] = useState(null)
 
   const contactMethods = [
@@ -53,11 +55,11 @@ export default function ContactPage() {
 
   const subjects = [
     { value: '', label: 'Select a topic' },
-    { value: 'beats', label: 'Beat Inquiry / Licensing' },
-    { value: 'studio', label: 'Studio Session Booking' },
-    { value: 'mixing', label: 'Mix and Master Service' },
-    { value: 'collab', label: 'Collaboration' },
-    { value: 'other', label: 'Other' }
+    { value: 'Beat Inquiry / Licensing', label: 'Beat Inquiry / Licensing' },
+    { value: 'Studio Session Booking', label: 'Studio Session Booking' },
+    { value: 'Mix and Master Service', label: 'Mix and Master Service' },
+    { value: 'Collaboration', label: 'Collaboration' },
+    { value: 'Other', label: 'Other' }
   ]
 
   const faqs = [
@@ -93,12 +95,34 @@ export default function ContactPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    alert('Message sent! I will get back to you at ' + formData.email + ' within 24 hours.')
-    setIsSubmitting(false)
-    setSubmitted(true)
-    setFormData({ name: '', email: '', subject: '', message: '' })
-    setTimeout(() => setSubmitted(false), 5000)
+    setSubmitError(null)
+
+    try {
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          is_read: false
+        }])
+        .select()
+
+      if (error) throw error
+
+      setSubmitted(true)
+      setFormData({ name: '', email: '', subject: '', message: '' })
+      
+      // Reset after 5 seconds
+      setTimeout(() => setSubmitted(false), 5000)
+
+    } catch (error) {
+      console.error('Contact form error:', error)
+      setSubmitError(error.message || 'Failed to send message. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -176,8 +200,8 @@ export default function ContactPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * index }}
               >
-                {method.action ? (<a
-                  
+                {method.action ? (
+                  <a
                     href={method.action}
                     target={method.action.startsWith('http') ? '_blank' : undefined}
                     rel={method.action.startsWith('http') ? 'noopener noreferrer' : undefined}
@@ -222,6 +246,12 @@ export default function ContactPage() {
                   </motion.div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {submitError && (
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
+                        {submitError}
+                      </div>
+                    )}
+
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm text-gray-400 mb-2">Name *</label>
@@ -278,13 +308,24 @@ export default function ContactPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className={`w-full py-4 rounded-full font-semibold transition ${
+                      className={`w-full py-4 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
                         isSubmitting
                           ? 'bg-white/10 text-gray-500 cursor-not-allowed'
                           : 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
                       }`}
                     >
-                      {isSubmitting ? 'Sending...' : 'Send Message'}
+                      {isSubmitting ? (
+                        <>
+                          <motion.div
+                            className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          />
+                          Sending...
+                        </>
+                      ) : (
+                        'Send Message'
+                      )}
                     </button>
                   </form>
                 )}

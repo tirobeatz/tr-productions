@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { supabase } from '../../lib/supabase'
 
 export default function AboutPage() {
   const [activeTimeline, setActiveTimeline] = useState(null)
   const [flippedCards, setFlippedCards] = useState([])
   const [easterEggFound, setEasterEggFound] = useState(false)
+  const [siteImages, setSiteImages] = useState([])
   const [konamiProgress, setKonamiProgress] = useState(0)
   const heroRef = useRef(null)
   
@@ -18,6 +20,19 @@ export default function AboutPage() {
   // Konami code easter egg
   const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
   
+  // Fetch site images
+  useEffect(() => {
+    const fetchSiteImages = async () => {
+      const { data } = await supabase
+        .from('site_images')
+        .select('*')
+        .eq('is_active', true)
+      setSiteImages(data || [])
+    }
+    fetchSiteImages()
+  }, [])
+
+  // Konami code easter egg
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === konamiCode[konamiProgress]) {
@@ -35,6 +50,10 @@ export default function AboutPage() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [konamiProgress])
+
+  const getImage = (location) => {
+    return siteImages.find(img => img.location === location)?.image_url
+  }
 
   const toggleFlip = (index) => {
     setFlippedCards(prev => 
@@ -402,6 +421,47 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+{/* About Photos */}
+<section className="relative py-20 px-6">
+  <div className="max-w-5xl mx-auto">
+    <div className="grid md:grid-cols-2 gap-8">
+      {/* Profile Photo */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden"
+      >
+        {getImage('about-profile') ? (
+          <img src={getImage('about-profile')} alt="TR" className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-center">
+            <span className="text-8xl block mb-4">👨‍🎤</span>
+            <p className="text-gray-500">Profile Photo</p>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Studio Shot */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden"
+      >
+        {getImage('about-studio') ? (
+          <img src={getImage('about-studio')} alt="In the studio" className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-center">
+            <span className="text-8xl block mb-4">🎧</span>
+            <p className="text-gray-500">Working in Studio</p>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  </div>
+</section>
 
       {/* Interactive Timeline */}
       <section id="journey" className="relative py-20 px-6">

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -17,11 +18,63 @@ export default function StudioPage() {
     phone: '',
     message: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+  const [submitted, setSubmitted] = useState(false)
+
+  // Database state
+  const [availability, setAvailability] = useState([])
+  const [bookings, setBookings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [siteImages, setSiteImages] = useState([])
+
 
   const HOURLY_RATE = 30
   const MIX_MASTER_RATE = 60
   const BULK_DISCOUNT_HOURS = 5
   const BULK_RATE = 25
+
+  // Fetch availability and bookings on mount
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+   setLoading(true)
+    await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages()])
+    setLoading(false)
+}
+
+  const fetchAvailability = async () => {
+    const { data } = await supabase
+      .from('studio_availability')
+      .select('*')
+      .order('date', { ascending: true })
+    
+    setAvailability(data || [])
+  }
+
+  const fetchBookings = async () => {
+    const { data } = await supabase
+      .from('studio_bookings')
+      .select('*')
+      .in('status', ['pending', 'confirmed'])
+    
+    setBookings(data || [])
+  }
+
+  const fetchSiteImages = async () => {
+    const { data } = await supabase
+      .from('site_images')
+      .select('*')
+     .eq('is_active', true)
+
+  setSiteImages(data || [])
+}
+
+const getImage = (location) => {
+  return siteImages.find(img => img.location === location)?.image_url
+}
 
   // Generate calendar days for current month
   const generateCalendarDays = () => {
@@ -34,12 +87,10 @@ export default function StudioPage() {
     
     const days = []
     
-    // Empty cells for days before the 1st
     for (let i = 0; i < startingDay; i++) {
       days.push(null)
     }
     
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day))
     }
@@ -47,19 +98,56 @@ export default function StudioPage() {
     return days
   }
 
-  // Simulated booked hours (in real app, this would come from a database)
-  const getBookedHours = (date) => {
+  // Format date to YYYY-MM-DD for database comparison
+  const formatDateKey = (date) => {
+    if (!date) return ''
+    return date.toISOString().split('T')[0]
+  }
+
+  // Get availability record for a specific date
+  const getAvailabilityForDate = (date) => {
+    if (!date) return null
+    return availability.find(a => a.date === formatDateKey(date))
+  }
+
+  // Get bookings for a specific date
+  const getBookingsForDate = (date) => {
     if (!date) return []
-    const dateStr = date.toDateString()
+    return bookings.filter(b => b.date === formatDateKey(date))
+  }
+
+  // Get all booked/blocked hours for a date
+  const getUnavailableHours = (date) => {
+    if (!date) return []
     
-    // Simulate some booked slots
-    const bookedSlots = {
-      [new Date(2025, 0, 6).toDateString()]: [10, 11, 14],
-      [new Date(2025, 0, 8).toDateString()]: [12, 13, 14, 15],
-      [new Date(2025, 0, 10).toDateString()]: [16, 17, 18],
+    const unavailable = []
+    
+    // Check admin-blocked hours
+    const avail = getAvailabilityForDate(date)
+    if (avail) {
+      if (avail.is_fully_blocked) {
+        return allHours // All hours blocked
+      }
+      if (avail.blocked_hours) {
+        unavailable.push(...avail.blocked_hours)
+      }
     }
     
-    return bookedSlots[dateStr] || []
+    // Check booked hours from confirmed/pending bookings
+    const dateBookings = getBookingsForDate(date)
+    dateBookings.forEach(booking => {
+      if (booking.hours) {
+        unavailable.push(...booking.hours)
+      }
+    })
+    
+    return [...new Set(unavailable)] // Remove duplicates
+  }
+
+  // Check if a date is fully blocked
+  const isDateFullyBlocked = (date) => {
+    const avail = getAvailabilityForDate(date)
+    return avail?.is_fully_blocked || false
   }
 
   // Available hours (10:00 - 22:00)
@@ -104,6 +192,8 @@ export default function StudioPage() {
   const openBookingModal = () => {
     if (selectedDate && selectedHours.length > 0) {
       setShowBookingModal(true)
+      setSubmitError(null)
+      setSubmitted(false)
       document.body.style.overflow = 'hidden'
     }
   }
@@ -113,15 +203,50 @@ export default function StudioPage() {
     document.body.style.overflow = 'unset'
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const hoursFormatted = selectedHours.map(h => `${h}:00`).join(', ')
-    alert(`Booking Request Submitted!\n\nDate: ${formatDate(selectedDate)}\nHours: ${hoursFormatted}\nTotal: €${calculateTotal()}\n\nWe'll contact you at ${formData.email} to confirm.`)
-    closeBookingModal()
-    setSelectedDate(null)
-    setSelectedHours([])
-    setIncludeMixMaster(false)
-    setFormData({ name: '', email: '', phone: '', message: '' })
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      const { data, error } = await supabase
+        .from('studio_bookings')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          message: formData.message || null,
+          date: formatDateKey(selectedDate),
+          hours: selectedHours,
+          add_mix_master: includeMixMaster,
+          total_price: calculateTotal(),
+          status: 'pending'
+        }])
+        .select()
+
+      if (error) throw error
+
+      setSubmitted(true)
+      
+      // Refresh bookings to show updated availability
+      await fetchBookings()
+
+      // Reset form after delay
+      setTimeout(() => {
+        closeBookingModal()
+        setSelectedDate(null)
+        setSelectedHours([])
+        setIncludeMixMaster(false)
+        setFormData({ name: '', email: '', phone: '', message: '' })
+        setSubmitted(false)
+      }, 3000)
+
+    } catch (error) {
+      console.error('Booking error:', error)
+      setSubmitError(error.message || 'Failed to submit booking. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const prevMonth = () => {
@@ -130,6 +255,13 @@ export default function StudioPage() {
 
   const nextMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+  }
+
+  // Handle date selection
+  const handleDateSelect = (date) => {
+    if (isDateInPast(date) || isDateFullyBlocked(date)) return
+    setSelectedDate(date)
+    setSelectedHours([]) // Reset hours when date changes
   }
 
   const testimonials = [
@@ -147,7 +279,7 @@ export default function StudioPage() {
   return (
     <main className="min-h-screen bg-[#050505] text-white relative">
       
-      {/* Background - Same as Homepage */}
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.07] blur-[180px] rounded-full" />
         
@@ -330,48 +462,59 @@ export default function StudioPage() {
       </section>
 
       {/* Studio Gallery */}
-      <section className="relative py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Space</p>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Where The Magic Happens</h2>
-          </motion.div>
+<section className="relative py-20 px-6">
+  <div className="max-w-7xl mx-auto">
+    <motion.div
+      className="text-center mb-12"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+    >
+      <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Space</p>
+      <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Where The Magic Happens</h2>
+    </motion.div>
 
-          <motion.div
-            className="grid md:grid-cols-3 gap-4"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 cursor-pointer">
-              <div className="text-center">
-                <span className="text-7xl block mb-4 group-hover:scale-110 transition-transform duration-300">🎙️</span>
-                <p className="text-gray-400">Studio Photo</p>
-                <p className="text-gray-600 text-sm">Upload your image</p>
-              </div>
+    <motion.div
+      className="grid md:grid-cols-3 gap-4"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+    >
+      <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden">
+        {getImage('studio-main') ? (
+          <img src={getImage('studio-main')} alt="Studio" className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-center">
+            <span className="text-7xl block mb-4 group-hover:scale-110 transition-transform duration-300">🎙️</span>
+            <p className="text-gray-400">Studio Photo</p>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden min-h-[120px]">
+          {getImage('studio-setup') ? (
+            <img src={getImage('studio-setup')} alt="Setup" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-center">
+              <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">🎧</span>
+              <p className="text-gray-500 text-sm">Setup</p>
             </div>
-            <div className="flex flex-col gap-4">
-              <div className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 cursor-pointer py-8">
-                <div className="text-center">
-                  <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">🎧</span>
-                  <p className="text-gray-500 text-sm">Setup</p>
-                </div>
-              </div>
-              <div className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 cursor-pointer py-8">
-                <div className="text-center">
-                  <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">🛋️</span>
-                  <p className="text-gray-500 text-sm">Vibe</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          )}
         </div>
-      </section>
+        <div className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden min-h-[120px]">
+          {getImage('studio-vibe') ? (
+            <img src={getImage('studio-vibe')} alt="Vibe" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-center">
+              <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">🛋️</span>
+              <p className="text-gray-500 text-sm">Vibe</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  </div>
+</section>
 
       {/* What to Expect */}
       <section className="relative py-20 px-6">
@@ -468,16 +611,19 @@ export default function StudioPage() {
                   }
 
                   const isPast = isDateInPast(date)
+                  const isBlocked = isDateFullyBlocked(date)
                   const isSelected = selectedDate?.toDateString() === date.toDateString()
                   const isTodayDate = isToday(date)
+                  const unavailableHours = getUnavailableHours(date)
+                  const hasPartialAvailability = unavailableHours.length > 0 && unavailableHours.length < allHours.length
 
                   return (
                     <button
                       key={date.toISOString()}
-                      onClick={() => !isPast && setSelectedDate(date)}
-                      disabled={isPast}
-                      className={`aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all ${
-                        isPast 
+                      onClick={() => handleDateSelect(date)}
+                      disabled={isPast || isBlocked}
+                      className={`aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all relative ${
+                        isPast || isBlocked
                           ? 'text-gray-700 cursor-not-allowed'
                           : isSelected
                             ? 'bg-[#8B5CF6] text-white'
@@ -487,9 +633,25 @@ export default function StudioPage() {
                       }`}
                     >
                       {date.getDate()}
+                      {isBlocked && !isPast && (
+                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-500 rounded-full" />
+                      )}
+                      {hasPartialAvailability && !isPast && !isBlocked && (
+                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-yellow-500 rounded-full" />
+                      )}
                     </button>
                   )
                 })}
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-500 rounded-full" /> Fully Blocked
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full" /> Partial Availability
+                </div>
               </div>
 
               {/* Time Slots */}
@@ -502,34 +664,48 @@ export default function StudioPage() {
                   <h4 className="font-semibold mb-4">
                     Available hours for {formatDate(selectedDate)}
                   </h4>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {allHours.map(hour => {
-                      const isBooked = getBookedHours(selectedDate).includes(hour)
-                      const isSelected = selectedHours.includes(hour)
+                  
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <motion.div
+                        className="w-6 h-6 border-2 border-[#8B5CF6] border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {allHours.map(hour => {
+                          const unavailableHours = getUnavailableHours(selectedDate)
+                          const isUnavailable = unavailableHours.includes(hour)
+                          const isSelected = selectedHours.includes(hour)
 
-                      return (
-                        <button
-                          key={hour}
-                          onClick={() => !isBooked && toggleHour(hour)}
-                          disabled={isBooked}
-                          className={`py-3 rounded-xl text-sm font-medium transition-all ${
-                            isBooked
-                              ? 'bg-white/5 text-gray-600 cursor-not-allowed line-through'
-                              : isSelected
-                                ? 'bg-[#8B5CF6] text-white'
-                                : 'bg-white/5 text-gray-300 hover:bg-white/10'
-                          }`}
-                        >
-                          {hour}:00
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-4">
-                    <span className="inline-block w-3 h-3 bg-white/5 rounded mr-2"></span>Available
-                    <span className="inline-block w-3 h-3 bg-[#8B5CF6] rounded mx-2 ml-4"></span>Selected
-                    <span className="inline-block w-3 h-3 bg-white/5 rounded mx-2 ml-4 line-through"></span>Booked
-                  </p>
+                          return (
+                            <button
+                              key={hour}
+                              onClick={() => !isUnavailable && toggleHour(hour)}
+                              disabled={isUnavailable}
+                              className={`py-3 rounded-xl text-sm font-medium transition-all ${
+                                isUnavailable
+                                  ? 'bg-white/5 text-gray-600 cursor-not-allowed line-through'
+                                  : isSelected
+                                    ? 'bg-[#8B5CF6] text-white'
+                                    : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                              }`}
+                            >
+                              {hour}:00
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-4">
+                        <span className="inline-block w-3 h-3 bg-white/5 rounded mr-2"></span>Available
+                        <span className="inline-block w-3 h-3 bg-[#8B5CF6] rounded mx-2 ml-4"></span>Selected
+                        <span className="inline-block w-3 h-3 bg-white/5 rounded mx-2 ml-4 line-through"></span>Unavailable
+                      </p>
+                    </>
+                  )}
                 </motion.div>
               )}
             </div>
@@ -694,12 +870,16 @@ export default function StudioPage() {
                   </div>
                 </div>
               </div>
-              <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5">
-                <div className="text-center">
-                  <span className="text-5xl block mb-2">🏠</span>
-                  <p className="text-gray-500 text-sm">Pro Studio Vibes</p>
-                </div>
-              </div>
+              <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 overflow-hidden">
+                {getImage('studio-location') ? (
+                  <img src={getImage('studio-location')} alt="Studio Location" className="w-full h-full object-cover" />
+              ) : (
+               <div className="text-center">
+                <span className="text-5xl block mb-2">🏠</span>
+                 <p className="text-gray-500 text-sm">Pro Studio Vibes</p>
+               </div>
+             )}
+          </div>
             </div>
           </motion.div>
         </div>
@@ -736,86 +916,130 @@ export default function StudioPage() {
               </button>
 
               <div className="p-8">
-                <h3 className="text-2xl font-bold mb-2">Complete Your Booking</h3>
-                <p className="text-gray-500 mb-8">Fill in your details to confirm</p>
+                {submitted ? (
+                  <div className="text-center py-8">
+                    <motion.span 
+                      className="text-6xl block mb-4"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', bounce: 0.5 }}
+                    >
+                      ✅
+                    </motion.span>
+                    <h3 className="text-2xl font-bold mb-2">Booking Submitted!</h3>
+                    <p className="text-gray-500 mb-4">
+                      I'll confirm your session via email within 24 hours.
+                    </p>
+                    <p className="text-[#8B5CF6] font-medium">
+                      Check your inbox at {formData.email}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-2xl font-bold mb-2">Complete Your Booking</h3>
+                    <p className="text-gray-500 mb-8">Fill in your details to confirm</p>
 
-                {/* Booking Summary */}
-                <div className="bg-white/5 rounded-2xl p-4 mb-8 text-sm">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-400">Date</span>
-                    <span>{selectedDate && formatDate(selectedDate)}</span>
-                  </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-400">Hours</span>
-                    <span>{selectedHours.map(h => `${h}:00`).join(', ')}</span>
-                  </div>
-                  {includeMixMaster && (
-                    <div className="flex justify-between mb-2">
-                      <span className="text-gray-400">Mix & Master</span>
-                      <span>€{MIX_MASTER_RATE}</span>
+                    {/* Booking Summary */}
+                    <div className="bg-white/5 rounded-2xl p-4 mb-8 text-sm">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-gray-400">Date</span>
+                        <span>{selectedDate && formatDate(selectedDate)}</span>
+                      </div>
+                      <div className="flex justify-between mb-2">
+                        <span className="text-gray-400">Hours</span>
+                        <span>{selectedHours.map(h => `${h}:00`).join(', ')}</span>
+                      </div>
+                      {includeMixMaster && (
+                        <div className="flex justify-between mb-2">
+                          <span className="text-gray-400">Mix & Master</span>
+                          <span>€{MIX_MASTER_RATE}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold">
+                        <span>Total</span>
+                        <span className="text-[#8B5CF6]">€{calculateTotal()}</span>
+                      </div>
                     </div>
-                  )}
-                  <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span className="text-[#8B5CF6]">€{calculateTotal()}</span>
-                  </div>
-                </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
-                      placeholder="Your name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
-                      placeholder="your@email.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Phone</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
-                      placeholder="+49 123 456789"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Message (optional)</label>
-                    <textarea
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 resize-none"
-                      placeholder="Tell me about your project..."
-                    />
-                  </div>
+                    {submitError && (
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-red-400 text-sm">
+                        {submitError}
+                      </div>
+                    )}
 
-                  <button
-                    type="submit"
-                    className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] py-4 rounded-full font-semibold transition"
-                  >
-                    Confirm Booking Request
-                  </button>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
+                          placeholder="Your name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Email *</label>
+                        <input
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
+                          placeholder="your@email.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Phone</label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
+                          placeholder="+49 123 456789"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Message (optional)</label>
+                        <textarea
+                          value={formData.message}
+                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                          rows={3}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 resize-none"
+                          placeholder="Tell me about your project..."
+                        />
+                      </div>
 
-                  <p className="text-xs text-gray-500 text-center">
-                    I'll confirm your booking via email within 24 hours
-                  </p>
-                </form>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={`w-full py-4 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
+                          isSubmitting 
+                            ? 'bg-white/10 text-gray-500 cursor-not-allowed' 
+                            : 'bg-[#8B5CF6] hover:bg-[#7C3AED]'
+                        }`}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <motion.div
+                              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            />
+                            Submitting...
+                          </>
+                        ) : (
+                          'Confirm Booking Request'
+                        )}
+                      </button>
+
+                      <p className="text-xs text-gray-500 text-center">
+                        I'll confirm your booking via email within 24 hours
+                      </p>
+                    </form>
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>

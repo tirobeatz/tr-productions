@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -17,14 +18,25 @@ export default function MixingPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
   const [activeFaq, setActiveFaq] = useState(null)
   const [activeGenre, setActiveGenre] = useState(null)
   
   // Audio player state
-  const [audioMode, setAudioMode] = useState('mixed') // 'raw' or 'mixed'
+  const [audioMode, setAudioMode] = useState('mixed')
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
-  const progressInterval = useRef(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  
+  // Database state
+  const [mixDemo, setMixDemo] = useState(null)
+  const [recentMixes, setRecentMixes] = useState([])
+  const [playingMixId, setPlayingMixId] = useState(null)
+  
+  // Audio refs
+  const audioRef = useRef(null)
+  const mixAudioRef = useRef(null)
 
   const MIX_MASTER_PRICE = 60
   const RUSH_FEE = 30
@@ -80,13 +92,6 @@ export default function MixingPage() {
     }
   ]
 
-  const recentProjects = [
-    { title: 'Midnight Run', artist: 'Jay Flex', genre: 'Trap', color: 'from-purple-500/20' },
-    { title: 'City Dreams', artist: 'Luna', genre: 'R&B', color: 'from-pink-500/20' },
-    { title: 'No Cap', artist: 'Dre Money', genre: 'Hip-Hop', color: 'from-blue-500/20' },
-    { title: 'Slide', artist: 'K-Drill', genre: 'Drill', color: 'from-red-500/20' }
-  ]
-
   const testimonials = [
     { name: 'Jay Flex', role: 'Rapper', text: 'TR made my vocals sit perfectly in the mix. The 808s hit hard and everything sounds professional. Will be back!', avatar: 'JF' },
     { name: 'Luna Marie', role: 'Singer', text: 'Finally found someone who understands R&B vocals. The warmth and clarity is exactly what I wanted.', avatar: 'LM' },
@@ -109,41 +114,161 @@ export default function MixingPage() {
     { icon: '✅', title: 'Satisfaction', subtitle: 'Guaranteed' }
   ]
 
-  // Audio player functions
+  // Fetch data on mount
+  useEffect(() => {
+    fetchMixDemo()
+    fetchRecentMixes()
+  }, [])
+
+  const fetchMixDemo = async () => {
+    const { data } = await supabase
+      .from('mix_demos')
+      .select('*')
+      .eq('is_active', true)
+      .limit(1)
+      .single()
+    
+    if (data) setMixDemo(data)
+  }
+
+  const fetchRecentMixes = async () => {
+    const { data } = await supabase
+      .from('recent_mixes')
+      .select('*')
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(8)
+    
+    setRecentMixes(data || [])
+  }
+
+  // Audio event listeners for demo player
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime)
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100)
+      }
+    }
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration)
+    }
+
+    const handleEnded = () => {
+      setIsPlaying(false)
+      setProgress(0)
+      setCurrentTime(0)
+    }
+
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+    audio.addEventListener('ended', handleEnded)
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      audio.removeEventListener('ended', handleEnded)
+    }
+  }, [])
+
+  // Audio event listeners for recent mixes player
+  useEffect(() => {
+    const audio = mixAudioRef.current
+    if (!audio) return
+
+    const handleEnded = () => setPlayingMixId(null)
+    audio.addEventListener('ended', handleEnded)
+    return () => audio.removeEventListener('ended', handleEnded)
+  }, [])
+
+  // Update audio source when mode changes
+  useEffect(() => {
+    if (audioRef.current && mixDemo) {
+      const newSrc = audioMode === 'raw' ? mixDemo.raw_audio_url : mixDemo.mixed_audio_url
+      if (newSrc && audioRef.current.src !== newSrc) {
+        const wasPlaying = isPlaying
+        const currentPos = audioRef.current.currentTime
+        
+        audioRef.current.src = newSrc
+        audioRef.current.currentTime = Math.min(currentPos, audioRef.current.duration || currentPos)
+        
+        if (wasPlaying) {
+          audioRef.current.play().catch(() => {})
+        }
+      }
+    }
+  }, [audioMode, mixDemo])
+
   const togglePlay = () => {
+    if (!audioRef.current || !mixDemo) return
+    
+    const audioUrl = audioMode === 'raw' ? mixDemo.raw_audio_url : mixDemo.mixed_audio_url
+    if (!audioUrl) return
+
+    // Stop any playing recent mix
+    if (playingMixId) {
+      mixAudioRef.current?.pause()
+      setPlayingMixId(null)
+    }
+
+    if (!audioRef.current.src) {
+      audioRef.current.src = audioUrl
+    }
+
     if (isPlaying) {
-      clearInterval(progressInterval.current)
+      audioRef.current.pause()
       setIsPlaying(false)
     } else {
+      audioRef.current.play().catch(console.error)
       setIsPlaying(true)
-      progressInterval.current = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval.current)
-            setIsPlaying(false)
-            return 0
-          }
-          return prev + 0.5
-        })
-      }, 100)
     }
   }
 
   const switchAudioMode = (mode) => {
     setAudioMode(mode)
-    setProgress(0)
-    if (isPlaying) {
-      clearInterval(progressInterval.current)
-      setIsPlaying(false)
-    }
   }
 
-  const formatTime = (percent) => {
-    const totalSeconds = 30
-    const currentSeconds = Math.floor((percent / 100) * totalSeconds)
-    const mins = Math.floor(currentSeconds / 60)
-    const secs = currentSeconds % 60
+  const handleProgressClick = (e) => {
+    if (!audioRef.current || !duration) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const percent = ((e.clientX - rect.left) / rect.width) * 100
+    const newTime = (percent / 100) * duration
+    audioRef.current.currentTime = newTime
+    setProgress(percent)
+    setCurrentTime(newTime)
+  }
+
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Play recent mix
+  const playRecentMix = (mix) => {
+    if (!mix.audio_url) return
+
+    // Stop demo player if playing
+    if (isPlaying) {
+      audioRef.current?.pause()
+      setIsPlaying(false)
+    }
+
+    if (playingMixId === mix.id) {
+      mixAudioRef.current?.pause()
+      setPlayingMixId(null)
+    } else {
+      if (mixAudioRef.current) {
+        mixAudioRef.current.src = mix.audio_url
+        mixAudioRef.current.play().catch(console.error)
+        setPlayingMixId(mix.id)
+      }
+    }
   }
 
   const calculateTotal = () => {
@@ -153,16 +278,47 @@ export default function MixingPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    alert('Request submitted! I will get back to you within 24 hours at ' + formData.email)
-    setIsSubmitting(false)
-    setSubmitted(true)
-    setFormData({ name: '', email: '', trackName: '', genre: '', reference: '', notes: '', rushDelivery: false })
-    setTimeout(() => setSubmitted(false), 5000)
+    setSubmitError(null)
+
+    try {
+      const { data, error } = await supabase
+        .from('mix_requests')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          track_name: formData.trackName,
+          genre: formData.genre,
+          reference_url: formData.reference || null,
+          notes: formData.notes || null,
+          rush_delivery: formData.rushDelivery,
+          total_price: calculateTotal(),
+          status: 'pending'
+        }])
+        .select()
+
+      if (error) throw error
+
+      setSubmitted(true)
+      setFormData({ name: '', email: '', trackName: '', genre: '', reference: '', notes: '', rushDelivery: false })
+      setTimeout(() => setSubmitted(false), 10000)
+    } catch (error) {
+      console.error('Submission error:', error)
+      setSubmitError(error.message || 'Failed to submit. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  // Check if demo audio is available
+  const hasDemoAudio = mixDemo && (mixDemo.raw_audio_url || mixDemo.mixed_audio_url)
+  const currentAudioAvailable = mixDemo && (audioMode === 'raw' ? mixDemo.raw_audio_url : mixDemo.mixed_audio_url)
 
   return (
     <main className="min-h-screen bg-[#050505] text-white relative">
+      
+      {/* Hidden Audio Elements */}
+      <audio ref={audioRef} preload="metadata" />
+      <audio ref={mixAudioRef} preload="metadata" />
       
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none">
@@ -235,7 +391,7 @@ export default function MixingPage() {
               </div>
             </motion.div>
 
-            {/* Functional Before/After Player */}
+            {/* Before/After Player - Real Audio */}
             <motion.div
               className="relative"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -247,6 +403,27 @@ export default function MixingPage() {
                   <div>
                     <p className="text-sm text-gray-500">Before & After</p>
                     <p className="font-semibold">Hear The Difference</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isPlaying && (
+                      <div className="flex items-center gap-1">
+                        <motion.div 
+                          className="w-1.5 h-4 bg-[#8B5CF6] rounded-full"
+                          animate={{ scaleY: [1, 0.5, 1] }}
+                          transition={{ duration: 0.4, repeat: Infinity }}
+                        />
+                        <motion.div 
+                          className="w-1.5 h-4 bg-[#8B5CF6] rounded-full"
+                          animate={{ scaleY: [0.5, 1, 0.5] }}
+                          transition={{ duration: 0.4, repeat: Infinity, delay: 0.1 }}
+                        />
+                        <motion.div 
+                          className="w-1.5 h-4 bg-[#8B5CF6] rounded-full"
+                          animate={{ scaleY: [1, 0.5, 1] }}
+                          transition={{ duration: 0.4, repeat: Infinity, delay: 0.2 }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -275,8 +452,8 @@ export default function MixingPage() {
                 </div>
 
                 {/* Waveform Visualization */}
-                <div className={`relative h-24 flex items-center justify-center gap-[2px] mb-6 transition-opacity ${
-                  audioMode === 'raw' ? 'opacity-50' : 'opacity-100'
+                <div className={`relative h-24 flex items-center justify-center gap-[2px] mb-6 transition-all ${
+                  audioMode === 'raw' ? 'opacity-50 grayscale' : 'opacity-100'
                 }`}>
                   {[...Array(50)].map((_, i) => {
                     const baseHeight = audioMode === 'mixed' 
@@ -287,9 +464,11 @@ export default function MixingPage() {
                     return (
                       <motion.div
                         key={i}
-                        className={`w-1 rounded-full transition-colors ${
+                        className={`w-1 rounded-full transition-colors duration-150 ${
                           isActive 
-                            ? 'bg-gradient-to-t from-[#8B5CF6] to-[#A78BFA]' 
+                            ? audioMode === 'mixed'
+                              ? 'bg-gradient-to-t from-[#8B5CF6] to-[#A78BFA]'
+                              : 'bg-gradient-to-t from-gray-500 to-gray-400'
                             : 'bg-white/20'
                         }`}
                         animate={isPlaying ? {
@@ -307,12 +486,12 @@ export default function MixingPage() {
 
                 {/* Status Badge */}
                 <div className="flex justify-center mb-4">
-                  <span className={`px-4 py-1 rounded-full text-xs font-medium ${
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-medium ${
                     audioMode === 'mixed' 
                       ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' 
                       : 'bg-white/10 text-gray-400'
                   }`}>
-                    {audioMode === 'mixed' ? 'Professional Mix' : 'Unprocessed Audio'}
+                    {audioMode === 'mixed' ? '✨ Professional Mix' : '📼 Unprocessed Audio'}
                   </span>
                 </div>
 
@@ -320,10 +499,13 @@ export default function MixingPage() {
                 <div className="flex items-center gap-4">
                   <button 
                     onClick={togglePlay}
-                    className={`w-14 h-14 rounded-full flex items-center justify-center transition ${
-                      audioMode === 'mixed' 
-                        ? 'bg-[#8B5CF6] hover:bg-[#7C3AED]' 
-                        : 'bg-white/10 hover:bg-white/20'
+                    disabled={!currentAudioAvailable}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                      !currentAudioAvailable
+                        ? 'bg-white/5 cursor-not-allowed opacity-50'
+                        : audioMode === 'mixed' 
+                          ? 'bg-[#8B5CF6] hover:bg-[#7C3AED] hover:scale-105' 
+                          : 'bg-white/10 hover:bg-white/20 hover:scale-105'
                     }`}
                   >
                     {isPlaying ? (
@@ -334,35 +516,35 @@ export default function MixingPage() {
                   </button>
                   <div className="flex-1">
                     <div 
-                      className="h-2 bg-white/10 rounded-full overflow-hidden cursor-pointer"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect()
-                        const percent = ((e.clientX - rect.left) / rect.width) * 100
-                        setProgress(percent)
-                      }}
+                      className="h-2 bg-white/10 rounded-full overflow-hidden cursor-pointer group"
+                      onClick={handleProgressClick}
                     >
                       <div
-                        className={`h-full rounded-full transition-all ${
+                        className={`h-full rounded-full transition-all relative ${
                           audioMode === 'mixed' ? 'bg-[#8B5CF6]' : 'bg-white/40'
                         }`}
                         style={{ width: `${progress}%` }}
-                      />
+                      >
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg transform translate-x-1/2" />
+                      </div>
                     </div>
                     <div className="flex justify-between mt-2 text-xs text-gray-500">
-                      <span>{formatTime(progress)}</span>
-                      <span>0:30</span>
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-center text-gray-600 text-xs mt-6">
-                  Demo audio - Your track could sound like this
-                </p>
+                {!hasDemoAudio && (
+                  <p className="text-center text-gray-600 text-xs mt-6">
+                    Demo audio coming soon
+                  </p>
+                )}
               </div>
 
               {/* Price Badge */}
               <motion.div
-                className="absolute -top-4 -right-4 bg-[#8B5CF6] text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg"
+                className="absolute -top-4 -right-4 bg-[#8B5CF6] text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg shadow-[#8B5CF6]/25"
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 3, repeat: Infinity }}
               >
@@ -523,7 +705,7 @@ export default function MixingPage() {
         </div>
       </section>
 
-      {/* Recent Projects */}
+      {/* Recent Projects - From Database */}
       <section className="relative py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -537,9 +719,9 @@ export default function MixingPage() {
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recentProjects.map((project, index) => (
+            {recentMixes.map((project, index) => (
               <motion.div
-                key={project.title}
+                key={project.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -547,18 +729,80 @@ export default function MixingPage() {
                 whileHover={{ y: -8 }}
                 className="group cursor-pointer"
               >
-                <div className={`aspect-square bg-gradient-to-br ${project.color} to-[#050505] rounded-2xl flex items-center justify-center mb-4 border border-white/5 group-hover:border-white/20 transition relative overflow-hidden`}>
-                  <span className="text-5xl opacity-30">🎵</span>
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                      <span className="text-black ml-1">▶</span>
+                <div className={`aspect-square bg-gradient-to-br ${project.color || 'from-purple-500/20'} to-[#050505] rounded-2xl flex items-center justify-center mb-4 border border-white/5 group-hover:border-white/20 transition relative overflow-hidden`}>
+                  {project.image_url ? (
+                    <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-5xl opacity-30">🎵</span>
+                  )}
+                  
+                  {/* Play overlay */}
+                  {project.audio_url && (
+                    <div 
+                      onClick={() => playRecentMix(project)}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                    >
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center transition ${
+                        playingMixId === project.id ? 'bg-white' : 'bg-[#8B5CF6]'
+                      }`}>
+                        {playingMixId === project.id ? (
+                          <span className="text-[#8B5CF6]">❚❚</span>
+                        ) : (
+                          <span className="text-white ml-1">▶</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Now playing indicator */}
+                  {playingMixId === project.id && (
+                    <div className="absolute bottom-2 left-2 right-2 bg-black/70 rounded-lg px-3 py-2 flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {[...Array(3)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="w-1 bg-[#8B5CF6] rounded-full"
+                            animate={{ height: ['8px', '16px', '8px'] }}
+                            transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs">Playing</span>
+                    </div>
+                  )}
                 </div>
                 <h3 className="font-semibold">{project.title}</h3>
                 <p className="text-gray-500 text-sm">{project.artist} - {project.genre}</p>
               </motion.div>
             ))}
+
+            {recentMixes.length === 0 && (
+              <>
+                {/* Fallback static projects if none in database */}
+                {[
+                  { title: 'Midnight Run', artist: 'Jay Flex', genre: 'Trap', color: 'from-purple-500/20' },
+                  { title: 'City Dreams', artist: 'Luna', genre: 'R&B', color: 'from-pink-500/20' },
+                  { title: 'No Cap', artist: 'Dre Money', genre: 'Hip-Hop', color: 'from-blue-500/20' },
+                  { title: 'Slide', artist: 'K-Drill', genre: 'Drill', color: 'from-red-500/20' }
+                ].map((project, index) => (
+                  <motion.div
+                    key={project.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ y: -8 }}
+                    className="group cursor-pointer"
+                  >
+                    <div className={`aspect-square bg-gradient-to-br ${project.color} to-[#050505] rounded-2xl flex items-center justify-center mb-4 border border-white/5 group-hover:border-white/20 transition relative overflow-hidden`}>
+                      <span className="text-5xl opacity-30">🎵</span>
+                    </div>
+                    <h3 className="font-semibold">{project.title}</h3>
+                    <p className="text-gray-500 text-sm">{project.artist} - {project.genre}</p>
+                  </motion.div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -678,12 +922,29 @@ export default function MixingPage() {
           >
             {submitted ? (
               <div className="text-center py-12">
-                <span className="text-6xl block mb-4">✅</span>
+                <motion.span 
+                  className="text-6xl block mb-4"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', bounce: 0.5 }}
+                >
+                  ✅
+                </motion.span>
                 <h3 className="text-2xl font-bold mb-2">Request Submitted!</h3>
-                <p className="text-gray-500">I will review your project and get back to you soon.</p>
+                <p className="text-gray-500 mb-4">I will review your project and get back to you within 24 hours.</p>
+                <div className="bg-white/5 rounded-xl p-4 inline-block">
+                  <p className="text-sm text-gray-400">Send your audio files to:</p>
+                  <p className="text-[#8B5CF6] font-medium">mix@trproductions.de</p>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {submitError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
+                    {submitError}
+                  </div>
+                )}
+
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">Name *</label>
@@ -800,13 +1061,24 @@ export default function MixingPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-4 rounded-full font-semibold transition ${
+                  className={`w-full py-4 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
                     isSubmitting
                       ? 'bg-white/10 text-gray-500 cursor-not-allowed'
                       : 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
                   }`}
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                  {isSubmitting ? (
+                    <>
+                      <motion.div
+                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Request'
+                  )}
                 </button>
 
                 <p className="text-center text-gray-600 text-xs">
