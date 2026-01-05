@@ -7,14 +7,17 @@ export default function Cursor() {
   const trailRefs = useRef([])
   const [isHovering, setIsHovering] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
-  const [isMoving, setIsMoving] = useState(false)
+  const [isMobile, setIsMobile] = useState(true) // Default to true to prevent flash
   
-  const trailLength = 40
+  const trailLength = 12 // Reduced from 40 to 12
   const positions = useRef(Array(trailLength).fill({ x: -100, y: -100 }))
-  const moveTimeout = useRef(null)
 
   useEffect(() => {
-    if (window.innerWidth < 768) return
+    // Check if mobile - don't render cursor at all
+    const checkMobile = window.innerWidth < 768 || 'ontouchstart' in window
+    setIsMobile(checkMobile)
+    
+    if (checkMobile) return
 
     setIsVisible(true)
 
@@ -29,15 +32,6 @@ export default function Cursor() {
         cursorRef.current.style.left = mouseX + 'px'
         cursorRef.current.style.top = mouseY + 'px'
       }
-
-      setIsMoving(true)
-      
-      if (moveTimeout.current) {
-        clearTimeout(moveTimeout.current)
-      }
-      moveTimeout.current = setTimeout(() => {
-        setIsMoving(false)
-      }, 100)
     }
 
     let animationId
@@ -56,8 +50,8 @@ export default function Cursor() {
           trailRefs.current[i].style.top = y + 'px'
         }
 
-        x += (nextX - x) * 0.3
-        y += (nextY - y) * 0.3
+        x += (nextX - x) * 0.35
+        y += (nextY - y) * 0.35
       })
 
       animationId = requestAnimationFrame(animate)
@@ -67,7 +61,7 @@ export default function Cursor() {
     const handleMouseEnter = () => setIsHovering(true)
     const handleMouseLeave = () => setIsHovering(false)
 
-    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mousemove', handleMouseMove, { passive: true })
 
     const addHoverListeners = () => {
       document.querySelectorAll('a, button').forEach((el) => {
@@ -85,50 +79,32 @@ export default function Cursor() {
       document.removeEventListener('mousemove', handleMouseMove)
       cancelAnimationFrame(animationId)
       observer.disconnect()
-      if (moveTimeout.current) {
-        clearTimeout(moveTimeout.current)
-      }
     }
   }, [])
 
-  if (!isVisible) return null
+  // Don't render anything on mobile
+  if (isMobile || !isVisible) return null
 
   return (
     <>
       <style jsx global>{`
-        @keyframes colorPulse {
-          0%, 100% {
-            border-color: rgba(255, 255, 255, 0.7);
-            box-shadow: 0 0 0 rgba(167, 139, 250, 0);
-          }
-          50% {
-            border-color: rgba(167, 139, 250, 1);
-            box-shadow: 0 0 12px rgba(167, 139, 250, 0.8);
-          }
-        }
-        body.is-dragging .custom-cursor {
-          opacity: 0 !important;
-          visibility: hidden !important;
-        }
-        body.is-dragging * {
-          cursor: grabbing !important;
+        @media (max-width: 768px) {
+          .custom-cursor { display: none !important; }
         }
       `}</style>
 
-      {/* Trail segments */}
+      {/* Trail segments - simplified, no blur */}
       {[...Array(trailLength)].map((_, i) => (
         <div
           key={i}
           ref={(el) => (trailRefs.current[i] = el)}
           className="custom-cursor fixed pointer-events-none z-[9998] rounded-full"
           style={{
-            width: `${18 - i * 0.4}px`,
-            height: `${18 - i * 0.4}px`,
+            width: `${14 - i * 0.8}px`,
+            height: `${14 - i * 0.8}px`,
             transform: 'translate(-50%, -50%)',
-            background: `rgba(88, 50, 168, ${0.25 - i * 0.006})`,
-            filter: `blur(${2 + i * 0.2}px)`,
-            opacity: isMoving && !isHovering ? 1 : 0,
-            transition: 'opacity 0.2s',
+            background: `rgba(139, 92, 246, ${0.3 - i * 0.02})`,
+            // No blur - much better performance
           }}
         />
       ))}
@@ -136,11 +112,12 @@ export default function Cursor() {
       {/* Main cursor */}
       <div
         ref={cursorRef}
-        className="custom-cursor fixed w-3 h-3 border rounded-full pointer-events-none z-[9999]"
+        className="custom-cursor fixed w-3 h-3 rounded-full pointer-events-none z-[9999] border border-white/70"
         style={{
           transform: 'translate(-50%, -50%)',
-          borderColor: 'rgba(255, 255, 255, 0.7)',
-          animation: isHovering ? 'colorPulse 0.8s ease-in-out infinite' : 'none',
+          boxShadow: isHovering ? '0 0 12px rgba(139, 92, 246, 0.8)' : 'none',
+          borderColor: isHovering ? 'rgba(139, 92, 246, 1)' : 'rgba(255, 255, 255, 0.7)',
+          transition: 'box-shadow 0.2s, border-color 0.2s',
         }}
       />
     </>
