@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import { ScrollReveal } from './components/ScrollReveal'
 
 export default function Home() {
   const [featuredBeat, setFeaturedBeat] = useState(null)
@@ -152,7 +153,7 @@ export default function Home() {
 
       <Header />
       
-      {/* Hero Section - FRAMER MOTION HERE ONLY */}
+      {/* Hero Section - FRAMER MOTION */}
       <section className="relative flex items-center justify-center min-h-screen px-6 pt-20 overflow-hidden">
         
         {!isMobile && (
@@ -347,20 +348,20 @@ export default function Home() {
         </div>
         
         {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-gray-600 hidden md:flex animate-fadeIn">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-gray-600 hidden md:flex">
           <span className="text-xs uppercase tracking-widest">Scroll</span>
           <div className="w-px h-10 bg-gradient-to-b from-gray-600 to-transparent animate-pulse" />
         </div>
       </section>
 
-      {/* Services Section - CSS ONLY */}
+      {/* Services Section - ScrollReveal */}
       <section className="relative py-20 md:py-32 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 md:mb-20 animate-fadeInUp">
+          <ScrollReveal className="text-center mb-12 md:mb-20">
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Services</p>
             <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">What I Offer</h2>
             <p className="text-gray-500 max-w-2xl mx-auto">Everything you need to bring your musical vision to life</p>
-          </div>
+          </ScrollReveal>
           
           <div className="grid md:grid-cols-3 gap-6">
             {[
@@ -368,29 +369,27 @@ export default function Home() {
               { icon: '🎚️', title: 'Mix & Master', desc: 'Professional mixing and mastering to make your tracks radio-ready. Fast online delivery.', link: '/mixing', cta: 'Learn More' },
               { icon: '🎤', title: 'Studio Sessions', desc: 'Book time in my professional studio in Trier. Recording, production, and creative sessions.', link: '/studio', cta: 'Book Session' },
             ].map((service, i) => (
-              <div 
-                key={service.title}
-                className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300 animate-fadeInUp"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition">
-                  <span className="text-xl">{service.icon}</span>
+              <ScrollReveal key={service.title} delay={i * 100}>
+                <div className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300 h-full">
+                  <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition">
+                    <span className="text-xl">{service.icon}</span>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">{service.title}</h3>
+                  <p className="text-gray-500 mb-6 leading-relaxed text-sm">{service.desc}</p>
+                  <a href={service.link} className="text-white hover:text-gray-300 transition flex items-center gap-2 text-sm">
+                    {service.cta} <span>→</span>
+                  </a>
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{service.title}</h3>
-                <p className="text-gray-500 mb-6 leading-relaxed text-sm">{service.desc}</p>
-                <a href={service.link} className="text-white hover:text-gray-300 transition flex items-center gap-2 text-sm">
-                  {service.cta} <span>→</span>
-                </a>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Beats Section - CSS ONLY */}
+      {/* Featured Beats Section - ScrollReveal */}
       <section className="relative py-20 md:py-32 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12 md:mb-16 animate-fadeInUp">
+          <ScrollReveal className="flex flex-col md:flex-row md:items-end md:justify-between mb-12 md:mb-16">
             <div>
               <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Latest Beats</p>
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Fresh From The Lab</h2>
@@ -398,7 +397,7 @@ export default function Home() {
             <a href="/beats" className="text-gray-500 hover:text-white transition mt-4 md:mt-0 flex items-center gap-2 text-sm">
               View All Beats <span>→</span>
             </a>
-          </div>
+          </ScrollReveal>
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {loading ? (
@@ -414,36 +413,36 @@ export default function Home() {
               ))
             ) : latestBeats.length > 0 ? (
               latestBeats.map((beat, index) => (
-                <a
-                  key={beat.id}
-                  href="/beats"
-                  className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300 block animate-fadeInUp"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center relative overflow-hidden">
-                    {beat.image_url ? (
-                      <img src={beat.image_url} alt={beat.title} className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <span className="text-4xl md:text-5xl opacity-30">🎵</span>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center">
-                        <span className="text-black text-base md:text-lg ml-1">▶</span>
+                <ScrollReveal key={beat.id} delay={index * 100}>
+                  <a
+                    href="/beats"
+                    className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300 block h-full"
+                  >
+                    <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center relative overflow-hidden">
+                      {beat.image_url ? (
+                        <img src={beat.image_url} alt={beat.title} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <span className="text-4xl md:text-5xl opacity-30">🎵</span>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-black text-base md:text-lg ml-1">▶</span>
+                        </div>
+                      </div>
+                      {beat.is_featured && (
+                        <div className="absolute top-2 left-2 md:top-3 md:left-3 bg-[#8B5CF6] text-white text-xs px-2 py-1 rounded-full">Featured</div>
+                      )}
+                    </div>
+                    <div className="p-4 md:p-5">
+                      <h4 className="font-semibold mb-1 text-sm md:text-base truncate">{beat.title}</h4>
+                      <p className="text-gray-600 text-xs md:text-sm mb-2 md:mb-3">{beat.genre} • {beat.bpm} BPM</p>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm md:text-base">{formatPrice(beat.price_mp3)}</span>
+                        <span className="text-xs text-gray-600 hidden sm:inline">MP3 Lease</span>
                       </div>
                     </div>
-                    {beat.is_featured && (
-                      <div className="absolute top-2 left-2 md:top-3 md:left-3 bg-[#8B5CF6] text-white text-xs px-2 py-1 rounded-full">Featured</div>
-                    )}
-                  </div>
-                  <div className="p-4 md:p-5">
-                    <h4 className="font-semibold mb-1 text-sm md:text-base truncate">{beat.title}</h4>
-                    <p className="text-gray-600 text-xs md:text-sm mb-2 md:mb-3">{beat.genre} • {beat.bpm} BPM</p>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm md:text-base">{formatPrice(beat.price_mp3)}</span>
-                      <span className="text-xs text-gray-600 hidden sm:inline">MP3 Lease</span>
-                    </div>
-                  </div>
-                </a>
+                  </a>
+                </ScrollReveal>
               ))
             ) : (
               <div className="col-span-2 lg:col-span-4 text-center py-12">
@@ -455,13 +454,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section - CSS ONLY */}
+      {/* Testimonials Section - ScrollReveal */}
       <section className="relative py-20 md:py-32 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 md:mb-20 animate-fadeInUp">
+          <ScrollReveal className="text-center mb-12 md:mb-20">
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Testimonials</p>
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight">What Artists Say</h2>
-          </div>
+          </ScrollReveal>
           
           <div className="grid md:grid-cols-3 gap-6">
             {[
@@ -469,33 +468,31 @@ export default function Home() {
               { initials: 'LM', name: 'Lisa M.', role: 'R&B Singer', text: 'Studio sessions with TR are always productive. Great energy, professional setup, and amazing results.' },
               { initials: 'DK', name: 'David K.', role: 'Rapper', text: 'Bought 3 beats so far and every one has been fire. The quality is unmatched for the price.' },
             ].map((testimonial, i) => (
-              <div 
-                key={testimonial.name}
-                className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 animate-fadeInUp"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="flex gap-1 mb-4 md:mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-[#8B5CF6]">★</span>
-                  ))}
-                </div>
-                <p className="text-gray-400 mb-4 md:mb-6 leading-relaxed text-sm">"{testimonial.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-sm font-medium">{testimonial.initials}</div>
-                  <div>
-                    <p className="font-medium text-sm">{testimonial.name}</p>
-                    <p className="text-gray-600 text-xs">{testimonial.role}</p>
+              <ScrollReveal key={testimonial.name} delay={i * 100}>
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 h-full">
+                  <div className="flex gap-1 mb-4 md:mb-6">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-[#8B5CF6]">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-400 mb-4 md:mb-6 leading-relaxed text-sm">"{testimonial.text}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-sm font-medium">{testimonial.initials}</div>
+                    <div>
+                      <p className="font-medium text-sm">{testimonial.name}</p>
+                      <p className="text-gray-600 text-xs">{testimonial.role}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section - CSS ONLY */}
+      {/* CTA Section - ScrollReveal */}
       <section className="relative py-20 md:py-32 px-6">
-        <div className="max-w-3xl mx-auto text-center animate-fadeInUp">
+        <ScrollReveal className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Ready to Create?</h2>
           <p className="text-gray-500 mb-8 md:mb-10 text-base md:text-lg max-w-xl mx-auto">
             Let us work together to bring your vision to life.
@@ -504,30 +501,16 @@ export default function Home() {
             <a href="/beats" className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-8 py-4 rounded-full font-semibold transition">Browse Beats</a>
             <a href="/contact" className="border border-white/20 hover:border-white/40 hover:bg-white/5 px-8 py-4 rounded-full font-semibold transition">Get in Touch</a>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       <Footer />
 
-      {/* Global CSS Animations */}
+      {/* Waveform animation */}
       <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
         @keyframes waveform {
           0% { transform: scaleY(0.5); }
           100% { transform: scaleY(1.2); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.6s ease-out forwards;
-        }
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out forwards;
         }
         .animate-waveform {
           animation: waveform 0.5s ease-in-out infinite alternate;
