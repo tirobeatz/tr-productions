@@ -1,15 +1,49 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import Header from './components/Header'
 import Footer from './components/Footer'
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(true)
+  const [featuredBeat, setFeaturedBeat] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
   }, [])
+
+  useEffect(() => {
+    fetchBeats()
+  }, [])
+
+  const fetchBeats = async () => {
+    setLoading(true)
+    
+    const { data: featured } = await supabase
+      .from('beats')
+      .select('*')
+      .eq('is_sold', false)
+      .eq('is_featured', true)
+      .limit(1)
+      .single()
+
+    if (featured) {
+      setFeaturedBeat(featured)
+    } else {
+      const { data: recent } = await supabase
+        .from('beats')
+        .select('*')
+        .eq('is_sold', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      setFeaturedBeat(recent)
+    }
+
+    setLoading(false)
+  }
 
   return (
     <main className="min-h-screen bg-[#050505] text-white relative">
@@ -21,7 +55,6 @@ export default function Home() {
           style={{ filter: isMobile ? 'blur(100px)' : 'blur(180px)' }}
         />
         
-        {/* SVG sound waves */}
         {!isMobile && (
           <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -35,7 +68,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* Noise texture */}
       <div 
         className="fixed inset-0 opacity-[0.02] pointer-events-none"
         style={{
@@ -59,6 +91,11 @@ export default function Home() {
           <a href="/beats" className="bg-[#8B5CF6] px-8 py-4 rounded-full font-semibold">
             Browse Beats
           </a>
+          
+          {/* Show loading state */}
+          <p className="mt-8 text-gray-600 text-sm">
+            {loading ? 'Loading beat...' : featuredBeat ? `Featured: ${featuredBeat.title}` : 'No beats'}
+          </p>
         </div>
       </section>
 
