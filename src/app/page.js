@@ -8,6 +8,7 @@ import Footer from './components/Footer'
 export default function Home() {
   const [isMobile, setIsMobile] = useState(true)
   const [featuredBeat, setFeaturedBeat] = useState(null)
+  const [latestBeats, setLatestBeats] = useState([])
   const [loading, setLoading] = useState(true)
   
   const [isPlaying, setIsPlaying] = useState(false)
@@ -48,6 +49,14 @@ export default function Home() {
       setFeaturedBeat(recent)
     }
 
+    const { data: latest } = await supabase
+      .from('beats')
+      .select('*')
+      .eq('is_sold', false)
+      .order('created_at', { ascending: false })
+      .limit(4)
+
+    setLatestBeats(latest || [])
     setLoading(false)
   }
 
@@ -240,6 +249,142 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="relative py-20 md:py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 md:mb-20">
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Services</p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">What I Offer</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">Everything you need to bring your musical vision to life</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { icon: '🎵', title: 'Beat Store', desc: 'Browse exclusive beats crafted for your sound. Instant download with multiple license options.', link: '/beats', cta: 'Browse Beats' },
+              { icon: '🎚️', title: 'Mix & Master', desc: 'Professional mixing and mastering to make your tracks radio-ready. Fast online delivery.', link: '/mixing', cta: 'Learn More' },
+              { icon: '🎤', title: 'Studio Sessions', desc: 'Book time in my professional studio in Trier. Recording, production, and creative sessions.', link: '/studio', cta: 'Book Session' },
+            ].map((service) => (
+              <div key={service.title} className="group bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300">
+                <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:bg-white/10 transition">
+                  <span className="text-xl">{service.icon}</span>
+                </div>
+                <h3 className="text-xl font-semibold mb-3">{service.title}</h3>
+                <p className="text-gray-500 mb-6 leading-relaxed text-sm">{service.desc}</p>
+                <a href={service.link} className="text-white hover:text-gray-300 transition flex items-center gap-2 text-sm">
+                  {service.cta} <span>→</span>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Latest Beats Section */}
+      <section className="relative py-20 md:py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12 md:mb-16">
+            <div>
+              <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Latest Beats</p>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Fresh From The Lab</h2>
+            </div>
+            <a href="/beats" className="text-gray-500 hover:text-white transition mt-4 md:mt-0 flex items-center gap-2 text-sm">
+              View All Beats <span>→</span>
+            </a>
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {loading ? (
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
+                  <div className="aspect-square bg-white/5 animate-pulse" />
+                  <div className="p-4">
+                    <div className="h-4 bg-white/5 rounded mb-2 w-3/4 animate-pulse" />
+                    <div className="h-3 bg-white/5 rounded w-1/2 animate-pulse" />
+                  </div>
+                </div>
+              ))
+            ) : latestBeats.length > 0 ? (
+              latestBeats.map((beat) => (
+                <a key={beat.id} href="/beats" className="group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all block">
+                  <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent relative overflow-hidden">
+                    {beat.image_url ? (
+                      <img src={beat.image_url} alt={beat.title} className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-4xl opacity-30">🎵</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <span className="text-black ml-1">▶</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-semibold text-sm truncate">{beat.title}</h4>
+                    <p className="text-gray-600 text-xs mb-2">{beat.genre} • {beat.bpm} BPM</p>
+                    <span className="font-semibold text-sm">{formatPrice(beat.price_mp3)}</span>
+                  </div>
+                </a>
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-12">
+                <span className="text-5xl block mb-4">🎵</span>
+                <p className="text-gray-500">No beats available yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="relative py-20 md:py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 md:mb-20">
+            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Testimonials</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">What Artists Say</h2>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { initials: 'MJ', name: 'Marcus J.', role: 'Hip-Hop Artist', text: 'The mix came out incredible. TR really understood the vibe I was going for and elevated the whole track.' },
+              { initials: 'LM', name: 'Lisa M.', role: 'R&B Singer', text: 'Studio sessions with TR are always productive. Great energy, professional setup, and amazing results.' },
+              { initials: 'DK', name: 'David K.', role: 'Rapper', text: 'Bought 3 beats so far and every one has been fire. The quality is unmatched for the price.' },
+            ].map((testimonial) => (
+              <div key={testimonial.name} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} className="text-[#8B5CF6]">★</span>
+                  ))}
+                </div>
+                <p className="text-gray-400 mb-6 leading-relaxed text-sm">"{testimonial.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-sm font-medium">{testimonial.initials}</div>
+                  <div>
+                    <p className="font-medium text-sm">{testimonial.name}</p>
+                    <p className="text-gray-600 text-xs">{testimonial.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative py-20 md:py-32 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">Ready to Create?</h2>
+          <p className="text-gray-500 mb-10 text-lg max-w-xl mx-auto">
+            Let us work together to bring your vision to life.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/beats" className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-8 py-4 rounded-full font-semibold transition">Browse Beats</a>
+            <a href="/contact" className="border border-white/20 hover:border-white/40 px-8 py-4 rounded-full font-semibold transition">Get in Touch</a>
           </div>
         </div>
       </section>
