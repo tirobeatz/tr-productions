@@ -1,10 +1,24 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+
+// Hook: detect mobile viewport
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  return isMobile
+}
 
 export default function MixingPage() {
   const [formData, setFormData] = useState({
@@ -114,6 +128,29 @@ export default function MixingPage() {
     { icon: '✅', title: 'Satisfaction', subtitle: 'Guaranteed' }
   ]
 
+  const isMobile = useIsMobile()
+  const prefersReducedMotion = useReducedMotion()
+
+  // Helper for scroll animations (disabled on mobile / reduced motion)
+  const getScrollAnimation = (delay = 0) => {
+    if (isMobile || prefersReducedMotion) return {}
+    return {
+      initial: { opacity: 0, y: 20 },
+      whileInView: { opacity: 1, y: 0 },
+      viewport: { once: true },
+      transition: { delay }
+    }
+  }
+
+  // Waveform configuration (lighter & deterministic)
+  const BAR_COUNT = 40
+  const waveformHeights = useMemo(() => {
+    return Array.from({ length: BAR_COUNT }, (_, i) => ({
+      mixed: Math.sin(i * 0.3) * 30 + 50,
+      raw: Math.sin(i * 0.3) * 15 + 25,
+    }))
+  }, [])
+
   // Fetch data on mount
   useEffect(() => {
     fetchMixDemo()
@@ -201,6 +238,7 @@ export default function MixingPage() {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioMode, mixDemo])
 
   const togglePlay = () => {
@@ -313,6 +351,8 @@ export default function MixingPage() {
   const hasDemoAudio = mixDemo && (mixDemo.raw_audio_url || mixDemo.mixed_audio_url)
   const currentAudioAvailable = mixDemo && (audioMode === 'raw' ? mixDemo.raw_audio_url : mixDemo.mixed_audio_url)
 
+  const shouldAnimateWaveform = isPlaying && !isMobile && !prefersReducedMotion
+
   return (
     <main className="min-h-screen bg-[#050505] text-white relative">
       
@@ -320,61 +360,67 @@ export default function MixingPage() {
       <audio ref={audioRef} preload="metadata" />
       <audio ref={mixAudioRef} preload="metadata" />
       
-      {/* Background Effects */}
-<div className="fixed inset-0 pointer-events-none overflow-hidden">
-  {/* Main gradient glow */}
-  <div 
-    className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.08] rounded-full animate-glow-pulse"
-    style={{ filter: 'blur(150px)' }}
-  />
-  
-  {/* Secondary glow - bottom right */}
-  <div 
-    className="absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.05] rounded-full"
-    style={{ filter: 'blur(120px)' }}
-  />
-  
-  {/* Accent glow - left side */}
-  <div 
-    className="absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-[#6D28D9] opacity-[0.04] rounded-full"
-    style={{ filter: 'blur(100px)' }}
-  />
-  
-  {/* Grid pattern - desktop only */}
-  <div 
-    className="absolute inset-0 opacity-[0.03] hidden md:block"
-    style={{
-      backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
-      backgroundSize: '80px 80px',
-    }}
-  />
-  
-  {/* Sound waves SVG - desktop only */}
-  <svg className="absolute inset-0 w-full h-full opacity-[0.04] hidden md:block" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <pattern id="soundWavesMix" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
-        <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
-        <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
-        <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="0.5" fill="none"/>
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#soundWavesMix)" />
-  </svg>
+      {/* Background Effects - desktop */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden hidden md:block">
+        {/* Main gradient glow */}
+        <div 
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.08] rounded-full animate-glow-pulse"
+          style={{ filter: 'blur(150px)' }}
+        />
+        
+        {/* Secondary glow - bottom right */}
+        <div 
+          className="absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.05] rounded-full"
+          style={{ filter: 'blur(120px)' }}
+        />
+        
+        {/* Accent glow - left side */}
+        <div 
+          className="absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-[#6D28D9] opacity-[0.04] rounded-full"
+          style={{ filter: 'blur(100px)' }}
+        />
+        
+        {/* Grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px',
+          }}
+        />
+        
+        {/* Sound waves SVG */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="soundWavesMix" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
+              <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
+              <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
+              <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="0.5" fill="none"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#soundWavesMix)" />
+        </svg>
 
-  {/* Gradient fade at bottom */}
-  <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
-  
-  {/* Noise texture */}
-  <div 
-    className="absolute inset-0 opacity-[0.03]"
-    style={{
-      backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-    }}
-  />
-</div>
+        {/* Gradient fade at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
+        
+        {/* Noise texture */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+          }}
+        />
+      </div>
 
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.04] blur-[150px] rounded-full pointer-events-none" />
+      {/* Simple mobile background */}
+      <div className="fixed inset-0 pointer-events-none md:hidden">
+        <div className="w-full h-full bg-gradient-to-b from-[#050505] via-[#050505] to-black" />
+      </div>
+
+      {/* Extra glow - desktop only */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.04] blur-[150px] rounded-full pointer-events-none hidden md:block" />
 
       <Header />
 
@@ -424,7 +470,7 @@ export default function MixingPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="relative bg-white/[0.02] border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
+              <div className="relative bg-white/[0.02] border border-white/10 rounded-3xl p-8 backdrop-blur-none md:backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <p className="text-sm text-gray-500">Before & After</p>
@@ -477,16 +523,14 @@ export default function MixingPage() {
                   </button>
                 </div>
 
-                {/* Waveform Visualization */}
+                {/* Waveform Visualization (optimized) */}
                 <div className={`relative h-24 flex items-center justify-center gap-[2px] mb-6 transition-all ${
                   audioMode === 'raw' ? 'opacity-50 grayscale' : 'opacity-100'
                 }`}>
-                  {[...Array(50)].map((_, i) => {
-                    const baseHeight = audioMode === 'mixed' 
-                      ? Math.sin(i * 0.3) * 30 + 50 
-                      : Math.sin(i * 0.3) * 15 + 25
-                    const isActive = (i / 50) * 100 <= progress
-                    
+                  {waveformHeights.map((h, i) => {
+                    const baseHeight = audioMode === 'mixed' ? h.mixed : h.raw
+                    const isActive = (i / BAR_COUNT) * 100 <= progress
+
                     return (
                       <motion.div
                         key={i}
@@ -497,14 +541,17 @@ export default function MixingPage() {
                               : 'bg-gradient-to-t from-gray-500 to-gray-400'
                             : 'bg-white/20'
                         }`}
-                        animate={isPlaying ? {
-                          height: [baseHeight, baseHeight + Math.random() * 20, baseHeight]
-                        } : { height: baseHeight }}
-                        transition={{
-                          duration: 0.3,
-                          repeat: isPlaying ? Infinity : 0,
-                          delay: i * 0.02
-                        }}
+                        style={{ height: baseHeight }}
+                        animate={
+                          shouldAnimateWaveform
+                            ? { height: [baseHeight * 0.8, baseHeight * 1.2, baseHeight * 0.8] }
+                            : { height: baseHeight }
+                        }
+                        transition={
+                          shouldAnimateWaveform
+                            ? { duration: 0.6, repeat: Infinity, delay: i * 0.02 }
+                            : undefined
+                        }
                       />
                     )
                   })}
@@ -586,18 +633,13 @@ export default function MixingPage() {
         <div className="max-w-5xl mx-auto">
           <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 className="text-center"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                {...getScrollAnimation(index * 0.1)}
               >
                 <p className="text-4xl md:text-5xl font-bold text-[#8B5CF6] mb-2">{stat.value}</p>
                 <p className="text-gray-500 text-sm">{stat.label}</p>
@@ -612,9 +654,7 @@ export default function MixingPage() {
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Difference</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Why Work With Me</h2>
@@ -625,10 +665,7 @@ export default function MixingPage() {
             {whyWorkWithMe.map((item, index) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                {...getScrollAnimation(index * 0.1)}
                 className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 hover:border-[#8B5CF6]/30 transition group"
               >
                 <div className="flex items-start gap-5">
@@ -652,9 +689,7 @@ export default function MixingPage() {
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Specialties</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Genres I Mix</h2>
@@ -665,10 +700,7 @@ export default function MixingPage() {
             {genres.map((genre, index) => (
               <motion.div
                 key={genre.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                {...getScrollAnimation(index * 0.1)}
                 whileHover={{ scale: 1.02 }}
                 onClick={() => setActiveGenre(activeGenre === genre.name ? null : genre.name)}
                 className={`relative bg-white/[0.02] border rounded-2xl p-6 cursor-pointer transition-all ${
@@ -695,9 +727,7 @@ export default function MixingPage() {
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Process</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">From Raw to Radio-Ready</h2>
@@ -711,10 +741,7 @@ export default function MixingPage() {
               {process.map((item, index) => (
                 <motion.div
                   key={item.step}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
+                  {...getScrollAnimation(index * 0.1)}
                   className="relative text-center"
                 >
                   <div className="relative z-10 w-16 h-16 mx-auto mb-4 bg-[#0a0a0a] border-2 border-[#8B5CF6]/50 rounded-full flex items-center justify-center">
@@ -736,9 +763,7 @@ export default function MixingPage() {
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Portfolio</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Recent Mixes</h2>
@@ -748,16 +773,14 @@ export default function MixingPage() {
             {recentMixes.map((project, index) => (
               <motion.div
                 key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                {...getScrollAnimation(index * 0.1)}
                 whileHover={{ y: -8 }}
                 className="group cursor-pointer"
               >
                 <div className={`aspect-square bg-gradient-to-br ${project.color || 'from-purple-500/20'} to-[#050505] rounded-2xl flex items-center justify-center mb-4 border border-white/5 group-hover:border-white/20 transition relative overflow-hidden`}>
                   {project.image_url ? (
-                    <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" />
+                    // You can swap this <img> to Next.js <Image> if desired
+                    <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <span className="text-5xl opacity-30">🎵</span>
                   )}
@@ -788,8 +811,16 @@ export default function MixingPage() {
                           <motion.div
                             key={i}
                             className="w-1 bg-[#8B5CF6] rounded-full"
-                            animate={{ height: ['8px', '16px', '8px'] }}
-                            transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                            animate={
+                              isMobile || prefersReducedMotion
+                                ? { height: '12px' }
+                                : { height: ['8px', '16px', '8px'] }
+                            }
+                            transition={
+                              isMobile || prefersReducedMotion
+                                ? undefined
+                                : { duration: 0.5, repeat: Infinity, delay: i * 0.1 }
+                            }
                           />
                         ))}
                       </div>
@@ -813,10 +844,7 @@ export default function MixingPage() {
                 ].map((project, index) => (
                   <motion.div
                     key={project.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
+                    {...getScrollAnimation(index * 0.1)}
                     whileHover={{ y: -8 }}
                     className="group cursor-pointer"
                   >
@@ -838,9 +866,7 @@ export default function MixingPage() {
         <div className="max-w-2xl mx-auto">
           <motion.div
             className="bg-gradient-to-br from-[#8B5CF6]/10 to-transparent border border-[#8B5CF6]/20 rounded-3xl p-8 md:p-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <div className="text-center mb-8">
               <span className="text-6xl block mb-4">🎚️</span>
@@ -889,9 +915,7 @@ export default function MixingPage() {
         <div className="max-w-5xl mx-auto">
           <motion.div
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Reviews</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Artists Love It</h2>
@@ -901,10 +925,7 @@ export default function MixingPage() {
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={testimonial.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                {...getScrollAnimation(index * 0.1)}
                 className="bg-white/[0.02] border border-white/5 rounded-2xl p-6"
               >
                 <div className="flex gap-1 mb-4 text-[#8B5CF6]">
@@ -931,9 +952,7 @@ export default function MixingPage() {
         <div className="max-w-2xl mx-auto">
           <motion.div
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Get Started</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Submit Your Track</h2>
@@ -942,9 +961,7 @@ export default function MixingPage() {
 
           <motion.div
             className="bg-white/[0.02] border border-white/10 rounded-3xl p-8"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             {submitted ? (
               <div className="text-center py-12">
@@ -1121,9 +1138,7 @@ export default function MixingPage() {
         <div className="max-w-3xl mx-auto">
           <motion.div
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            {...getScrollAnimation()}
           >
             <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">FAQ</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Questions?</h2>
@@ -1133,10 +1148,7 @@ export default function MixingPage() {
             {faqs.map((faq, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
+                {...getScrollAnimation(index * 0.05)}
                 className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden"
               >
                 <button
