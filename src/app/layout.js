@@ -1,5 +1,6 @@
 import './globals.css'
 import Cursor from './components/Cursor'
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata = {
   title: 'TR Productions | Music Producer in Trier, Germany',
@@ -12,6 +13,7 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         <Cursor />
+        <SpeedInsights />
       </body>
     </html>
   )
