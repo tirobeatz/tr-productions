@@ -1,7 +1,10 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
+const motion = {
+  div: dynamic(() => import('framer-motion').then(mod => mod.motion.div), { ssr: false }),
+}
 import { supabase } from '../lib/supabase'
 import Header from './components/Header'
 import Footer from './components/Footer'
