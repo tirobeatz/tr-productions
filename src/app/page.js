@@ -374,18 +374,18 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm sm:text-base font-bold">{formatPrice(featuredBeat.price_mp3)}</span>
-                      <span className="text-gray-500 text-[10px] sm:text-xs ml-1">Lease</span>
-                    </div>
-                    <a 
-                      href="/beats" 
-                      className="bg-white text-black px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-medium hover:bg-gray-200 active:bg-gray-300 transition-colors"
-                    >
-                      Buy Now
-                    </a>
-                  </div>
+                 <div className="flex items-center justify-between gap-3">
+  <div className="flex-shrink-0">
+    <span className="text-base sm:text-lg font-bold">{formatPrice(featuredBeat.price_mp3)}</span>
+    <span className="text-gray-500 text-[10px] sm:text-xs ml-1">Lease</span>
+  </div>
+  <a 
+    href="/beats" 
+    className="bg-white text-black px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[44px] flex items-center justify-center"
+  >
+    Buy Now
+  </a>
+</div>
                 </>
               ) : (
                 <div className="text-center py-10 sm:py-12">
