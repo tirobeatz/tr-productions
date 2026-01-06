@@ -1,4 +1,4 @@
-// src/lib/auth.js
+// lib/auth.js
 import { supabase } from './supabase'
 
 // Check if current user is authenticated
@@ -65,9 +65,11 @@ export async function signOut() {
 
 // Create a new admin (only existing admins can do this)
 export async function createAdmin(email, name, role = 'admin') {
+  // First check if caller is admin
   const callerIsAdmin = await isAdmin()
   if (!callerIsAdmin) return { error: 'Unauthorized' }
   
+  // Check if email already exists in admins
   const { data: existing } = await supabase
     .from('admins')
     .select('id')
@@ -76,6 +78,7 @@ export async function createAdmin(email, name, role = 'admin') {
   
   if (existing) return { error: 'Admin with this email already exists' }
   
+  // Create the admin record (user_id will be linked when they first log in)
   const { data, error } = await supabase
     .from('admins')
     .insert([{ email, name, role, is_active: true }])
@@ -86,20 +89,24 @@ export async function createAdmin(email, name, role = 'admin') {
   return { admin: data }
 }
 
-// Invite a new admin …
+// Invite a new admin (creates auth user + admin record)
 export async function inviteAdmin(email, name, role = 'admin') {
   const callerIsAdmin = await isAdmin()
   if (!callerIsAdmin) return { error: 'Unauthorized' }
   
+  // Generate a temporary password (user should reset on first login)
   const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'
   
+  // Create auth user
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
     password: tempPassword,
     email_confirm: true
   })
   
+  // If we can't use admin API, try regular signup
   if (authError) {
+    // Create admin record without user_id - they'll need to sign up themselves
     const { data, error } = await supabase
       .from('admins')
       .insert([{ email, name, role, is_active: true }])
@@ -114,6 +121,7 @@ export async function inviteAdmin(email, name, role = 'admin') {
     }
   }
   
+  // Create admin record with user_id
   const { data, error } = await supabase
     .from('admins')
     .insert([{ 
@@ -130,6 +138,7 @@ export async function inviteAdmin(email, name, role = 'admin') {
   return { admin: data, tempPassword }
 }
 
+// Update admin
 export async function updateAdmin(adminId, updates) {
   const callerIsAdmin = await isAdmin()
   if (!callerIsAdmin) return { error: 'Unauthorized' }
@@ -145,10 +154,12 @@ export async function updateAdmin(adminId, updates) {
   return { admin: data }
 }
 
+// Deactivate admin (soft delete)
 export async function deactivateAdmin(adminId) {
   const callerIsAdmin = await isAdmin()
   if (!callerIsAdmin) return { error: 'Unauthorized' }
   
+  // Prevent deactivating yourself
   const profile = await getAdminProfile()
   if (profile?.id === adminId) {
     return { error: 'Cannot deactivate yourself' }
@@ -163,6 +174,7 @@ export async function deactivateAdmin(adminId) {
   return { success: true }
 }
 
+// Reactivate admin
 export async function reactivateAdmin(adminId) {
   const callerIsAdmin = await isAdmin()
   if (!callerIsAdmin) return { error: 'Unauthorized' }
@@ -176,6 +188,7 @@ export async function reactivateAdmin(adminId) {
   return { success: true }
 }
 
+// Get all admins
 export async function getAllAdmins() {
   const callerIsAdmin = await isAdmin()
   if (!callerIsAdmin) return { error: 'Unauthorized' }
@@ -189,6 +202,7 @@ export async function getAllAdmins() {
   return { admins: data }
 }
 
+// Link user_id to admin record on first login
 export async function linkUserToAdmin(userId, email) {
   const { data, error } = await supabase
     .from('admins')
@@ -201,6 +215,7 @@ export async function linkUserToAdmin(userId, email) {
   return { admin: data, error: error?.message }
 }
 
+// Listen to auth state changes
 export function onAuthStateChange(callback) {
   return supabase.auth.onAuthStateChange(callback)
 }
