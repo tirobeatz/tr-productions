@@ -1,1062 +1,420 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
 export default function StudioPage() {
+  const [isMobile, setIsMobile] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [selectedDate, setSelectedDate] = useState(null)
   const [selectedHours, setSelectedHours] = useState([])
   const [includeMixMaster, setIncludeMixMaster] = useState(false)
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: ''
-  })
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(false)
-
-  // Database state
   const [availability, setAvailability] = useState([])
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [siteImages, setSiteImages] = useState([])
+  const [visibleSections, setVisibleSections] = useState({})
 
-
-  const HOURLY_RATE = 30
-  const MIX_MASTER_RATE = 60
-  const BULK_DISCOUNT_HOURS = 5
-  const BULK_RATE = 25
-
-  // Fetch availability and bookings on mount
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
-   setLoading(true)
-    await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages()])
-    setLoading(false)
-}
-
-  const fetchAvailability = async () => {
-    const { data } = await supabase
-      .from('studio_availability')
-      .select('*')
-      .order('date', { ascending: true })
-    
-    setAvailability(data || [])
-  }
-
-  const fetchBookings = async () => {
-    const { data } = await supabase
-      .from('studio_bookings')
-      .select('*')
-      .in('status', ['pending', 'confirmed'])
-    
-    setBookings(data || [])
-  }
-
-  const fetchSiteImages = async () => {
-    const { data } = await supabase
-      .from('site_images')
-      .select('*')
-     .eq('is_active', true)
-
-  setSiteImages(data || [])
-}
-
-const getImage = (location) => {
-  return siteImages.find(img => img.location === location)?.image_url
-}
-
-  // Generate calendar days for current month
-  const generateCalendarDays = () => {
-    const year = currentMonth.getFullYear()
-    const month = currentMonth.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDay = firstDay.getDay()
-    
-    const days = []
-    
-    for (let i = 0; i < startingDay; i++) {
-      days.push(null)
-    }
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day))
-    }
-    
-    return days
-  }
-
-  // Format date to YYYY-MM-DD for database comparison
-  const formatDateKey = (date) => {
-    if (!date) return ''
-    return date.toISOString().split('T')[0]
-  }
-
-  // Get availability record for a specific date
-  const getAvailabilityForDate = (date) => {
-    if (!date) return null
-    return availability.find(a => a.date === formatDateKey(date))
-  }
-
-  // Get bookings for a specific date
-  const getBookingsForDate = (date) => {
-    if (!date) return []
-    return bookings.filter(b => b.date === formatDateKey(date))
-  }
-
-  // Get all booked/blocked hours for a date
-  const getUnavailableHours = (date) => {
-    if (!date) return []
-    
-    const unavailable = []
-    
-    // Check admin-blocked hours
-    const avail = getAvailabilityForDate(date)
-    if (avail) {
-      if (avail.is_fully_blocked) {
-        return allHours // All hours blocked
-      }
-      if (avail.blocked_hours) {
-        unavailable.push(...avail.blocked_hours)
-      }
-    }
-    
-    // Check booked hours from confirmed/pending bookings
-    const dateBookings = getBookingsForDate(date)
-    dateBookings.forEach(booking => {
-      if (booking.hours) {
-        unavailable.push(...booking.hours)
-      }
-    })
-    
-    return [...new Set(unavailable)] // Remove duplicates
-  }
-
-  // Check if a date is fully blocked
-  const isDateFullyBlocked = (date) => {
-    const avail = getAvailabilityForDate(date)
-    return avail?.is_fully_blocked || false
-  }
-
-  // Available hours (10:00 - 22:00)
+  const HOURLY_RATE = 30, MIX_MASTER_RATE = 60, BULK_DISCOUNT_HOURS = 5, BULK_RATE = 25
   const allHours = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
-  const isDateInPast = (date) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return date < today
-  }
-
-  const isToday = (date) => {
-    const today = new Date()
-    return date && date.toDateString() === today.toDateString()
-  }
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  }
-
-  const toggleHour = (hour) => {
-    setSelectedHours(prev => 
-      prev.includes(hour) 
-        ? prev.filter(h => h !== hour)
-        : [...prev, hour].sort((a, b) => a - b)
-    )
-  }
-
-  const calculateTotal = () => {
-    const hours = selectedHours.length
-    const hourlyTotal = hours >= BULK_DISCOUNT_HOURS 
-      ? hours * BULK_RATE 
-      : hours * HOURLY_RATE
-    const mixMasterTotal = includeMixMaster ? MIX_MASTER_RATE : 0
-    return hourlyTotal + mixMasterTotal
-  }
-
-  const getHourlyRate = () => {
-    return selectedHours.length >= BULK_DISCOUNT_HOURS ? BULK_RATE : HOURLY_RATE
-  }
-
-  const openBookingModal = () => {
-    if (selectedDate && selectedHours.length > 0) {
-      setShowBookingModal(true)
-      setSubmitError(null)
-      setSubmitted(false)
-      document.body.style.overflow = 'hidden'
-    }
-  }
-
-  const closeBookingModal = () => {
-    setShowBookingModal(false)
-    document.body.style.overflow = 'unset'
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitError(null)
-
-    try {
-      const { data, error } = await supabase
-        .from('studio_bookings')
-        .insert([{
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          message: formData.message || null,
-          date: formatDateKey(selectedDate),
-          hours: selectedHours,
-          add_mix_master: includeMixMaster,
-          total_price: calculateTotal(),
-          status: 'pending'
-        }])
-        .select()
-
-      if (error) throw error
-
-      setSubmitted(true)
-      
-      // Refresh bookings to show updated availability
-      await fetchBookings()
-
-      // Reset form after delay
-      setTimeout(() => {
-        closeBookingModal()
-        setSelectedDate(null)
-        setSelectedHours([])
-        setIncludeMixMaster(false)
-        setFormData({ name: '', email: '', phone: '', message: '' })
-        setSubmitted(false)
-      }, 3000)
-
-    } catch (error) {
-      console.error('Booking error:', error)
-      setSubmitError(error.message || 'Failed to submit booking. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
-  }
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
-  }
-
-  // Handle date selection
-  const handleDateSelect = (date) => {
-    if (isDateInPast(date) || isDateFullyBlocked(date)) return
-    setSelectedDate(date)
-    setSelectedHours([]) // Reset hours when date changes
-  }
-
   const testimonials = [
-    { name: 'Marcus J.', role: 'Rapper', text: 'Super chill vibe. TR knows how to get the best take out of you. Felt like home.', rating: 5 },
-    { name: 'Sarah K.', role: 'Singer', text: 'Finally a studio where I don\'t feel rushed. Fair prices, great results!', rating: 5 },
+    { name: 'Marcus J.', role: 'Rapper', text: 'Super chill vibe. TR knows how to get the best take out of you.', rating: 5 },
+    { name: 'Sarah K.', role: 'Singer', text: "Finally a studio where I don't feel rushed. Fair prices!", rating: 5 },
   ]
 
   const whatToExpect = [
-    { icon: '🎤', title: 'Recording', text: 'Professional vocal recording with guidance and direction' },
-    { icon: '🎧', title: 'Engineer Included', text: 'I handle all the technical stuff so you can focus on performing' },
-    { icon: '💾', title: 'Your Files', text: 'Get your recorded tracks in WAV format after the session' },
-    { icon: '☕', title: 'Relaxed Vibe', text: 'Cozy studio atmosphere, no stress, just creativity' },
+    { icon: '🎤', title: 'Recording', text: 'Professional vocal recording with guidance' },
+    { icon: '🎧', title: 'Engineer', text: 'I handle all the technical stuff' },
+    { icon: '💾', title: 'Your Files', text: 'WAV format after the session' },
+    { icon: '☕', title: 'Relaxed Vibe', text: 'Cozy atmosphere, no stress' },
   ]
 
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+    setMounted(true)
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach(e => e.isIntersecting && setVisibleSections(p => ({ ...p, [e.target.id]: true }))),
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    )
+    document.querySelectorAll('[data-animate]').forEach(s => observer.observe(s))
+    return () => observer.disconnect()
+  }, [mounted])
+
+  const fetchData = async () => { setLoading(true); await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages()]); setLoading(false) }
+  const fetchAvailability = async () => { const { data } = await supabase.from('studio_availability').select('*').order('date', { ascending: true }); setAvailability(data || []) }
+  const fetchBookings = async () => { const { data } = await supabase.from('studio_bookings').select('*').in('status', ['pending', 'confirmed']); setBookings(data || []) }
+  const fetchSiteImages = async () => { const { data } = await supabase.from('site_images').select('*').eq('is_active', true); setSiteImages(data || []) }
+
+  const getImage = (loc) => siteImages.find(img => img.location === loc)?.image_url
+  const generateCalendarDays = () => {
+    const y = currentMonth.getFullYear(), m = currentMonth.getMonth(), first = new Date(y, m, 1), days = []
+    for (let i = 0; i < first.getDay(); i++) days.push(null)
+    for (let d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) days.push(new Date(y, m, d))
+    return days
+  }
+  const formatDateKey = (d) => d?.toISOString().split('T')[0] || ''
+  const getAvailabilityForDate = (d) => d ? availability.find(a => a.date === formatDateKey(d)) : null
+  const getUnavailableHours = (d) => {
+    if (!d) return []
+    const avail = getAvailabilityForDate(d)
+    if (avail?.is_fully_blocked) return allHours
+    const unavail = avail?.blocked_hours || []
+    bookings.filter(b => b.date === formatDateKey(d)).forEach(b => b.hours && unavail.push(...b.hours))
+    return [...new Set(unavail)]
+  }
+  const isDateFullyBlocked = (d) => getAvailabilityForDate(d)?.is_fully_blocked || false
+  const isDateInPast = (d) => { const t = new Date(); t.setHours(0,0,0,0); return d < t }
+  const isToday = (d) => d?.toDateString() === new Date().toDateString()
+  const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const toggleHour = (h) => setSelectedHours(p => p.includes(h) ? p.filter(x => x !== h) : [...p, h].sort((a,b) => a-b))
+  const calculateTotal = () => (selectedHours.length >= BULK_DISCOUNT_HOURS ? selectedHours.length * BULK_RATE : selectedHours.length * HOURLY_RATE) + (includeMixMaster ? MIX_MASTER_RATE : 0)
+  const getHourlyRate = () => selectedHours.length >= BULK_DISCOUNT_HOURS ? BULK_RATE : HOURLY_RATE
+  const openBookingModal = () => { if (selectedDate && selectedHours.length > 0) { setShowBookingModal(true); setSubmitError(null); setSubmitted(false); document.body.style.overflow = 'hidden' } }
+  const closeBookingModal = () => { setShowBookingModal(false); document.body.style.overflow = 'unset' }
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+  const handleDateSelect = (d) => { if (!isDateInPast(d) && !isDateFullyBlocked(d)) { setSelectedDate(d); setSelectedHours([]) } }
+  const anim = (id) => `transition-all duration-1000 ${visibleSections[id] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setIsSubmitting(true); setSubmitError(null)
+    try {
+      const { error } = await supabase.from('studio_bookings').insert([{
+        name: formData.name, email: formData.email, phone: formData.phone || null, message: formData.message || null,
+        date: formatDateKey(selectedDate), hours: selectedHours, add_mix_master: includeMixMaster, total_price: calculateTotal(), status: 'pending'
+      }])
+      if (error) throw error
+      setSubmitted(true); await fetchBookings()
+      setTimeout(() => { closeBookingModal(); setSelectedDate(null); setSelectedHours([]); setIncludeMixMaster(false); setFormData({ name: '', email: '', phone: '', message: '' }); setSubmitted(false) }, 3000)
+    } catch (err) { setSubmitError(err.message || 'Failed to submit.') }
+    finally { setIsSubmitting(false) }
+  }
+
   return (
-    <main className="min-h-screen bg-[#050505] text-white relative">
+    <main className="min-h-screen bg-[#050505] text-white relative overflow-x-hidden">
       
-      {/* Background Effects */}
-<div className="fixed inset-0 pointer-events-none overflow-hidden">
-  {/* Main gradient glow */}
-  <div 
-    className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#8B5CF6] opacity-[0.08] rounded-full animate-glow-pulse"
-    style={{ filter: 'blur(150px)' }}
-  />
-  
-  {/* Secondary glow - bottom right */}
-  <div 
-    className="absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.05] rounded-full"
-    style={{ filter: 'blur(120px)' }}
-  />
-  
-  {/* Accent glow - left side */}
-  <div 
-    className="absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-[#6D28D9] opacity-[0.04] rounded-full"
-    style={{ filter: 'blur(100px)' }}
-  />
-  
-  {/* Grid pattern - desktop only */}
-  <div 
-    className="absolute inset-0 opacity-[0.03] hidden md:block"
-    style={{
-      backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
-      backgroundSize: '80px 80px',
-    }}
-  />
-  
-  {/* Sound waves SVG - desktop only */}
-  <svg className="absolute inset-0 w-full h-full opacity-[0.04] hidden md:block" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <pattern id="soundWavesStudio" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
-        <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
-        <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none"/>
-        <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="0.5" fill="none"/>
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#soundWavesStudio)" />
-  </svg>
-
-  {/* Gradient fade at bottom */}
-  <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
-  
-  {/* Noise texture */}
-  <div 
-    className="absolute inset-0 opacity-[0.03]"
-    style={{
-      backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-    }}
-  />
-</div>
-
-<Header />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.04] blur-[150px] rounded-full pointer-events-none" />
+      {/* Background Effects - Matching Homepage */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div 
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] md:w-[1000px] h-[400px] md:h-[600px] bg-[#8B5CF6] opacity-[0.08] rounded-full animate-glow-pulse"
+          style={{ filter: isMobile ? 'blur(80px)' : 'blur(180px)' }}
+        />
+        <div className="hidden md:block absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.05] rounded-full" style={{ filter: 'blur(150px)' }} />
+        <div className="hidden md:block absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-[#6D28D9] opacity-[0.04] rounded-full" style={{ filter: 'blur(120px)' }} />
+        <div className="hidden md:block absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `linear-gradient(rgba(139,92,246,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.3) 1px, transparent 1px)`, backgroundSize: '80px 80px' }} />
+        <svg className="hidden md:block absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="wavesStudio" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
+              <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none" className="animate-wave"/>
+              <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none" className="animate-wave-delayed"/>
+              <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="0.5" fill="none" className="animate-wave"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#wavesStudio)" />
+        </svg>
+        <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
+        <div className="hidden md:block absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
+      </div>
 
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-16 px-6">
+      {/* Hero */}
+      <section className="relative pt-28 md:pt-32 pb-12 md:pb-16 px-4 md:px-6">
         <div className="max-w-7xl mx-auto text-center">
-          <motion.p
-            className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            Recording Studio in Trier
-          </motion.p>
-          <motion.h1
-            className="text-5xl md:text-7xl font-bold tracking-tight mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            Record With <span className="text-[#8B5CF6]">TR</span>
-          </motion.h1>
-          <motion.p
-            className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Cozy creative space, personal attention, and professional results. 
-            Book by the hour and let's make your vision come to life.
-          </motion.p>
-          <motion.div
-            className="flex flex-wrap justify-center gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <a href="#booking" className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-8 py-4 rounded-full font-semibold transition duration-150">
-              Book a Session
-            </a>
-            <a href="#pricing" className="border border-white/20 hover:border-white/40 hover:bg-white/5 px-8 py-4 rounded-full font-semibold transition duration-150">
-              View Pricing
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Simple Pricing Section */}
-      <section id="pricing" className="relative py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Simple Pricing</p>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">No Hidden Fees</h2>
-          </motion.div>
-
-          <motion.div
-            className="grid md:grid-cols-2 gap-6"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            {/* Recording Session */}
-            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 text-center">
-              <div className="text-5xl mb-4">🎙️</div>
-              <h3 className="text-2xl font-bold mb-2">Recording Session</h3>
-              <p className="text-gray-500 mb-6">Engineer included</p>
-              <div className="mb-4">
-                <span className="text-5xl font-bold">€{HOURLY_RATE}</span>
-                <span className="text-gray-500 ml-2">/ hour</span>
-              </div>
-              <div className="bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 rounded-xl p-4 mb-6">
-                <p className="text-sm text-[#8B5CF6]">
-                  💡 Book 5+ hours and pay only <span className="font-bold">€{BULK_RATE}/hour</span>
-                </p>
-              </div>
-              <ul className="text-left space-y-3 text-sm text-gray-400">
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  Professional vocal recording
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  Recording engineer included
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  WAV files delivered
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  Relaxed studio vibe
-                </li>
-              </ul>
-            </div>
-
-            {/* Mix & Master */}
-            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 text-center">
-              <div className="text-5xl mb-4">🎚️</div>
-              <h3 className="text-2xl font-bold mb-2">Mix & Master</h3>
-              <p className="text-gray-500 mb-6">Per track</p>
-              <div className="mb-4">
-                <span className="text-5xl font-bold">€{MIX_MASTER_RATE}</span>
-                <span className="text-gray-500 ml-2">/ track</span>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-                <p className="text-sm text-gray-400">
-                  Add to your booking or order separately
-                </p>
-              </div>
-              <ul className="text-left space-y-3 text-sm text-gray-400">
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  Professional mixing
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  Mastering included
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  Radio-ready sound
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-[#8B5CF6]">✓</span>
-                  1 revision included
-                </li>
-              </ul>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Studio Gallery */}
-<section className="relative py-20 px-6">
-  <div className="max-w-7xl mx-auto">
-    <motion.div
-      className="text-center mb-12"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-    >
-      <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">The Space</p>
-      <h2 className="text-4xl md:text-5xl font-bold tracking-tight">Where The Magic Happens</h2>
-    </motion.div>
-
-    <motion.div
-      className="grid md:grid-cols-3 gap-4"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-    >
-      <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden">
-        {getImage('studio-main') ? (
-          <img src={getImage('studio-main')} alt="Studio" className="w-full h-full object-cover" />
-        ) : (
-          <div className="text-center">
-            <span className="text-7xl block mb-4 group-hover:scale-110 transition-transform duration-300">🎙️</span>
-            <p className="text-gray-400">Studio Photo</p>
+          <p className={`text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>Recording Studio in Trier</p>
+          <h1 className={`text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6 transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>Record With <span className="text-[#8B5CF6]">TR</span></h1>
+          <p className={`text-base md:text-lg text-gray-400 mb-6 max-w-2xl mx-auto transition-all duration-1000 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>Cozy creative space, personal attention, and professional results.</p>
+          <div className={`flex flex-col sm:flex-row justify-center gap-3 transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <a href="#booking" className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-6 md:px-8 py-3 md:py-4 rounded-full font-semibold transition-all hover:scale-105">Book a Session</a>
+            <a href="#pricing" className="border border-white/20 hover:border-white/40 hover:bg-white/5 px-6 md:px-8 py-3 md:py-4 rounded-full font-semibold transition">View Pricing</a>
           </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-4">
-        <div className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden min-h-[120px]">
-          {getImage('studio-setup') ? (
-            <img src={getImage('studio-setup')} alt="Setup" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-center">
-              <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">🎧</span>
-              <p className="text-gray-500 text-sm">Setup</p>
-            </div>
-          )}
         </div>
-        <div className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition-all duration-300 overflow-hidden min-h-[120px]">
-          {getImage('studio-vibe') ? (
-            <img src={getImage('studio-vibe')} alt="Vibe" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-center">
-              <span className="text-4xl block mb-2 group-hover:scale-110 transition-transform duration-300">🛋️</span>
-              <p className="text-gray-500 text-sm">Vibe</p>
-            </div>
-          )}
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className={`text-center mb-8 md:mb-12 ${anim('pricing')}`}>
+            <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Simple Pricing</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">No Hidden Fees</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+            {[
+              { icon: '🎙️', title: 'Recording Session', sub: 'Engineer included', price: HOURLY_RATE, unit: 'hour', badge: `💡 Book 5+ hours = €${BULK_RATE}/hour`, badgeColor: '[#8B5CF6]', features: ['Professional recording', 'Engineer included', 'WAV files', 'Relaxed vibe'] },
+              { icon: '🎚️', title: 'Mix & Master', sub: 'Per track', price: MIX_MASTER_RATE, unit: 'track', badge: 'Add to booking or order separately', badgeColor: 'gray-400', features: ['Professional mixing', 'Mastering included', 'Radio-ready', '1 revision'] }
+            ].map((item, i) => (
+              <div key={item.title} className={`bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-8 text-center transition-all duration-700 hover:border-[#8B5CF6]/30 hover:-translate-y-1 ${anim('pricing')}`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className="text-4xl mb-3">{item.icon}</div>
+                <h3 className="text-xl font-bold mb-1">{item.title}</h3>
+                <p className="text-gray-500 mb-4 text-sm">{item.sub}</p>
+                <div className="mb-3"><span className="text-4xl font-bold">€{item.price}</span><span className="text-gray-500 ml-1 text-sm">/ {item.unit}</span></div>
+                <div className={`${i === 0 ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20' : 'bg-white/5 border-white/10'} border rounded-xl p-3 mb-4`}>
+                  <p className={`text-xs ${i === 0 ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>{item.badge}</p>
+                </div>
+                <ul className="text-left space-y-2 text-xs text-gray-400">
+                  {item.features.map((f, j) => <li key={j} className="flex items-center gap-2"><span className="text-[#8B5CF6]">✓</span>{f}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </motion.div>
-  </div>
-</section>
+      </section>
+
+      {/* Gallery */}
+      <section id="gallery" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className={`text-center mb-8 ${anim('gallery')}`}>
+            <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">The Space</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Where Magic Happens</h2>
+          </div>
+          <div className={`grid md:grid-cols-3 gap-3 ${anim('gallery')}`}>
+            <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden">
+              {getImage('studio-main') ? <img src={getImage('studio-main')} alt="Studio" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /> : <span className="text-5xl group-hover:scale-110 transition-transform">🎙️</span>}
+            </div>
+            <div className="flex flex-row md:flex-col gap-3">
+              {[{ loc: 'studio-setup', icon: '🎧' }, { loc: 'studio-vibe', icon: '🛋️' }].map(({ loc, icon }) => (
+                <div key={loc} className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden min-h-[100px]">
+                  {getImage(loc) ? <img src={getImage(loc)} alt={loc} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /> : <span className="text-3xl group-hover:scale-110 transition-transform">{icon}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* What to Expect */}
-      <section className="relative py-20 px-6">
+      <section id="expect" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
         <div className="max-w-5xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Your Session</p>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">What to Expect</h2>
-          </motion.div>
-
-          <motion.div
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            {whatToExpect.map((item, index) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-4xl mb-4">{item.icon}</div>
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm">{item.text}</p>
-              </motion.div>
+          <div className={`text-center mb-8 ${anim('expect')}`}>
+            <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Your Session</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">What to Expect</h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {whatToExpect.map((item, i) => (
+              <div key={item.title} className={`text-center ${anim('expect')}`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h3 className="font-semibold mb-1 text-sm">{item.title}</h3>
+                <p className="text-gray-500 text-xs">{item.text}</p>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Booking Calendar Section */}
-      <section id="booking" className="relative py-20 px-6">
+      {/* Booking */}
+      <section id="booking" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Book Now</p>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Pick Your Time</h2>
-            <p className="text-gray-500">Select a date, choose your hours, and let's record.</p>
-          </motion.div>
+          <div className={`text-center mb-8 ${anim('booking')}`}>
+            <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Book Now</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">Pick Your Time</h2>
+            <p className="text-gray-500 text-sm">Select a date, choose hours, and let's record.</p>
+          </div>
 
-          <motion.div
-            className="grid lg:grid-cols-3 gap-8"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
+          <div className={`grid lg:grid-cols-3 gap-6 ${anim('booking')}`}>
             {/* Calendar */}
-            <div className="lg:col-span-2 bg-white/[0.02] border border-white/10 rounded-3xl p-6">
-              {/* Month Navigation */}
-              <div className="flex items-center justify-between mb-6">
-                <button 
-                  onClick={prevMonth}
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition"
-                >
-                  ←
-                </button>
-                <h3 className="text-xl font-semibold">
-                  {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </h3>
-                <button 
-                  onClick={nextMonth}
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition"
-                >
-                  →
-                </button>
+            <div className="lg:col-span-2 bg-white/[0.02] border border-white/10 rounded-2xl p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={prevMonth} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition">←</button>
+                <h3 className="text-base font-semibold">{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
+                <button onClick={nextMonth} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition">→</button>
               </div>
-
-              {/* Day Headers */}
-              <div className="grid grid-cols-7 gap-2 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center text-xs text-gray-500 py-2">
-                    {day}
-                  </div>
-                ))}
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} className="text-center text-[10px] text-gray-500 py-1">{d}</div>)}
               </div>
-
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-2">
-                {generateCalendarDays().map((date, index) => {
-                  if (!date) {
-                    return <div key={`empty-${index}`} className="aspect-square" />
-                  }
-
-                  const isPast = isDateInPast(date)
-                  const isBlocked = isDateFullyBlocked(date)
-                  const isSelected = selectedDate?.toDateString() === date.toDateString()
-                  const isTodayDate = isToday(date)
-                  const unavailableHours = getUnavailableHours(date)
-                  const hasPartialAvailability = unavailableHours.length > 0 && unavailableHours.length < allHours.length
-
+              <div className="grid grid-cols-7 gap-1">
+                {generateCalendarDays().map((date, i) => {
+                  if (!date) return <div key={`e-${i}`} className="aspect-square" />
+                  const isPast = isDateInPast(date), isBlocked = isDateFullyBlocked(date), isSelected = selectedDate?.toDateString() === date.toDateString()
+                  const isTodayDate = isToday(date), unavail = getUnavailableHours(date), partial = unavail.length > 0 && unavail.length < allHours.length
                   return (
-                    <button
-                      key={date.toISOString()}
-                      onClick={() => handleDateSelect(date)}
-                      disabled={isPast || isBlocked}
-                      className={`aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all relative ${
-                        isPast || isBlocked
-                          ? 'text-gray-700 cursor-not-allowed'
-                          : isSelected
-                            ? 'bg-[#8B5CF6] text-white'
-                            : isTodayDate
-                              ? 'bg-white/10 text-white hover:bg-white/20'
-                              : 'hover:bg-white/5 text-gray-300'
-                      }`}
-                    >
+                    <button key={date.toISOString()} onClick={() => handleDateSelect(date)} disabled={isPast || isBlocked}
+                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition relative ${isPast || isBlocked ? 'text-gray-700 cursor-not-allowed' : isSelected ? 'bg-[#8B5CF6] text-white' : isTodayDate ? 'bg-white/10 hover:bg-white/20' : 'hover:bg-white/5 text-gray-300'}`}>
                       {date.getDate()}
-                      {isBlocked && !isPast && (
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-500 rounded-full" />
-                      )}
-                      {hasPartialAvailability && !isPast && !isBlocked && (
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-yellow-500 rounded-full" />
-                      )}
+                      {isBlocked && !isPast && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-500 rounded-full" />}
+                      {partial && !isPast && !isBlocked && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-yellow-500 rounded-full" />}
                     </button>
                   )
                 })}
               </div>
-
-              {/* Legend */}
-              <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-500 rounded-full" /> Fully Blocked
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-yellow-500 rounded-full" /> Partial Availability
-                </div>
+              <div className="flex gap-3 mt-3 text-[10px] text-gray-500">
+                <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-red-500 rounded-full" />Blocked</div>
+                <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />Partial</div>
               </div>
 
-              {/* Time Slots */}
               {selectedDate && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-8 pt-8 border-t border-white/10"
-                >
-                  <h4 className="font-semibold mb-4">
-                    Available hours for {formatDate(selectedDate)}
-                  </h4>
-                  
+                <div className="mt-6 pt-6 border-t border-white/10 animate-fade-in">
+                  <h4 className="font-semibold mb-3 text-sm">Hours for {formatDate(selectedDate)}</h4>
                   {loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <motion.div
-                        className="w-6 h-6 border-2 border-[#8B5CF6] border-t-transparent rounded-full"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      />
-                    </div>
+                    <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" /></div>
                   ) : (
-                    <>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {allHours.map(hour => {
-                          const unavailableHours = getUnavailableHours(selectedDate)
-                          const isUnavailable = unavailableHours.includes(hour)
-                          const isSelected = selectedHours.includes(hour)
-
-                          return (
-                            <button
-                              key={hour}
-                              onClick={() => !isUnavailable && toggleHour(hour)}
-                              disabled={isUnavailable}
-                              className={`py-3 rounded-xl text-sm font-medium transition-all ${
-                                isUnavailable
-                                  ? 'bg-white/5 text-gray-600 cursor-not-allowed line-through'
-                                  : isSelected
-                                    ? 'bg-[#8B5CF6] text-white'
-                                    : 'bg-white/5 text-gray-300 hover:bg-white/10'
-                              }`}
-                            >
-                              {hour}:00
-                            </button>
-                          )
-                        })}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-4">
-                        <span className="inline-block w-3 h-3 bg-white/5 rounded mr-2"></span>Available
-                        <span className="inline-block w-3 h-3 bg-[#8B5CF6] rounded mx-2 ml-4"></span>Selected
-                        <span className="inline-block w-3 h-3 bg-white/5 rounded mx-2 ml-4 line-through"></span>Unavailable
-                      </p>
-                    </>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                      {allHours.map(h => {
+                        const unavail = getUnavailableHours(selectedDate).includes(h), sel = selectedHours.includes(h)
+                        return (
+                          <button key={h} onClick={() => !unavail && toggleHour(h)} disabled={unavail}
+                            className={`py-2 rounded-lg text-xs font-medium transition ${unavail ? 'bg-white/5 text-gray-600 cursor-not-allowed line-through' : sel ? 'bg-[#8B5CF6] text-white' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}>
+                            {h}:00
+                          </button>
+                        )
+                      })}
+                    </div>
                   )}
-                </motion.div>
+                </div>
               )}
             </div>
 
-            {/* Booking Summary */}
-            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 h-fit sticky top-24">
-              <h3 className="text-xl font-semibold mb-6">Your Booking</h3>
-
+            {/* Summary */}
+            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 h-fit lg:sticky lg:top-24">
+              <h3 className="text-lg font-semibold mb-4">Your Booking</h3>
               {selectedDate ? (
                 <>
-                  <div className="space-y-4 mb-6">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Date</span>
-                      <span>{formatDate(selectedDate)}</span>
-                    </div>
-
+                  <div className="space-y-3 mb-4 text-sm">
+                    <div className="flex justify-between"><span className="text-gray-400">Date</span><span>{formatDate(selectedDate)}</span></div>
                     {selectedHours.length > 0 && (
                       <>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Hours</span>
-                          <span>{selectedHours.map(h => `${h}:00`).join(', ')}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Duration</span>
-                          <span>{selectedHours.length} hour{selectedHours.length > 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Rate</span>
-                          <span>
-                            €{getHourlyRate()}/hour
-                            {selectedHours.length >= BULK_DISCOUNT_HOURS && (
-                              <span className="text-[#8B5CF6] ml-1">(bulk discount!)</span>
-                            )}
-                          </span>
-                        </div>
+                        <div className="flex justify-between"><span className="text-gray-400">Hours</span><span className="text-right">{selectedHours.map(h => `${h}:00`).join(', ')}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-400">Rate</span><span>€{getHourlyRate()}/h {selectedHours.length >= BULK_DISCOUNT_HOURS && <span className="text-[#8B5CF6]">(bulk!)</span>}</span></div>
                       </>
                     )}
                   </div>
-
-                  {/* Mix & Master Add-on */}
-                  <div 
-                    className={`p-4 rounded-xl border mb-6 cursor-pointer transition-all ${
-                      includeMixMaster 
-                        ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30' 
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
-                    }`}
-                    onClick={() => setIncludeMixMaster(!includeMixMaster)}
-                  >
+                  <div className={`p-3 rounded-xl border mb-4 cursor-pointer transition ${includeMixMaster ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30' : 'bg-white/5 border-white/10 hover:border-white/20'}`} onClick={() => setIncludeMixMaster(!includeMixMaster)}>
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">Add Mix & Master</p>
-                        <p className="text-gray-500 text-xs">€{MIX_MASTER_RATE} per track</p>
-                      </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
-                        includeMixMaster ? 'bg-[#8B5CF6] border-[#8B5CF6]' : 'border-white/30'
-                      }`}>
-                        {includeMixMaster && <span className="text-xs">✓</span>}
-                      </div>
+                      <div><p className="font-medium text-sm">Add Mix & Master</p><p className="text-gray-500 text-xs">€{MIX_MASTER_RATE}/track</p></div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${includeMixMaster ? 'bg-[#8B5CF6] border-[#8B5CF6]' : 'border-white/30'}`}>{includeMixMaster && <span className="text-[10px]">✓</span>}</div>
                     </div>
                   </div>
-
-                  {/* Total */}
                   {selectedHours.length > 0 && (
-                    <div className="border-t border-white/10 pt-4 mb-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400">Total</span>
-                        <span className="text-2xl font-bold text-[#8B5CF6]">€{calculateTotal()}</span>
-                      </div>
+                    <div className="border-t border-white/10 pt-3 mb-4 flex justify-between items-center">
+                      <span className="text-gray-400">Total</span>
+                      <span className="text-xl font-bold text-[#8B5CF6]">€{calculateTotal()}</span>
                     </div>
                   )}
-
-                  <button
-                    onClick={openBookingModal}
-                    disabled={selectedHours.length === 0}
-                    className={`w-full py-4 rounded-full font-semibold transition ${
-                      selectedHours.length > 0
-                        ? 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
-                        : 'bg-white/10 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {selectedHours.length > 0 ? 'Continue Booking' : 'Select Hours'}
+                  <button onClick={openBookingModal} disabled={selectedHours.length === 0}
+                    className={`w-full py-3 rounded-full font-semibold transition text-sm ${selectedHours.length > 0 ? 'bg-[#8B5CF6] hover:bg-[#7C3AED] hover:scale-105' : 'bg-white/10 text-gray-500 cursor-not-allowed'}`}>
+                    {selectedHours.length > 0 ? 'Continue' : 'Select Hours'}
                   </button>
                 </>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Select a date to see available hours</p>
-                </div>
+                <p className="text-center py-6 text-gray-500 text-sm">Select a date to see hours</p>
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="relative py-20 px-6">
+      <section id="testimonials" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
         <div className="max-w-4xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Reviews</p>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight">What Artists Say</h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white/[0.02] border border-white/5 rounded-2xl p-8"
-              >
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <span key={i} className="text-[#8B5CF6]">★</span>
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-6 italic leading-relaxed">"{testimonial.text}"</p>
-                <div>
-                  <p className="font-semibold">{testimonial.name}</p>
-                  <p className="text-gray-500 text-sm">{testimonial.role}</p>
-                </div>
-              </motion.div>
+          <div className={`text-center mb-8 ${anim('testimonials')}`}>
+            <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Reviews</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">What Artists Say</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {testimonials.map((t, i) => (
+              <div key={t.name} className={`bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:border-[#8B5CF6]/20 transition-all duration-500 ${anim('testimonials')}`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className="flex gap-1 mb-3">{[...Array(t.rating)].map((_, j) => <span key={j} className="text-[#8B5CF6] text-sm">★</span>)}</div>
+                <p className="text-gray-300 mb-4 italic text-sm">"{t.text}"</p>
+                <div><p className="font-semibold text-sm">{t.name}</p><p className="text-gray-500 text-xs">{t.role}</p></div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Location */}
-      <section className="relative py-20 px-6">
+      <section id="location" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
         <div className="max-w-4xl mx-auto">
-          <motion.div
-            className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 md:p-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className={`bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-10 ${anim('location')}`}>
+            <div className="grid md:grid-cols-2 gap-6 items-center">
               <div>
-                <p className="text-gray-500 font-medium mb-4 tracking-[0.2em] uppercase text-xs">Location</p>
-                <h2 className="text-3xl font-bold tracking-tight mb-4">Recording Studio in Trier</h2>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Cozy creative space in a relaxed environment. Easy to find, parking available, 
-                  and all the essentials for a productive session.
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-[#8B5CF6]">📍</span>
-                    <span className="text-gray-400">Trier, Germany (exact address after booking)</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-[#8B5CF6]">🕐</span>
-                    <span className="text-gray-400">10:00 - 22:00 (flexible)</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-[#8B5CF6]">📧</span>
-                    <span className="text-gray-400">studio@trproductions.de</span>
-                  </div>
+                <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Location</p>
+                <h2 className="text-2xl font-bold tracking-tight mb-3">Studio in Trier</h2>
+                <p className="text-gray-400 mb-4 text-sm">Cozy space, easy to find, parking available.</p>
+                <div className="space-y-2 text-xs text-gray-400">
+                  {[{ i: '📍', t: 'Trier, Germany' }, { i: '🕐', t: '10:00 - 22:00' }, { i: '📧', t: 'studio@trproductions.de' }].map(({ i, t }) => (
+                    <div key={t} className="flex items-center gap-2"><span className="text-[#8B5CF6]">{i}</span>{t}</div>
+                  ))}
                 </div>
               </div>
-              <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl flex items-center justify-center border border-white/5 overflow-hidden">
-                {getImage('studio-location') ? (
-                  <img src={getImage('studio-location')} alt="Studio Location" className="w-full h-full object-cover" />
-              ) : (
-               <div className="text-center">
-                <span className="text-5xl block mb-2">🏠</span>
-                 <p className="text-gray-500 text-sm">Pro Studio Vibes</p>
-               </div>
-             )}
-          </div>
+              <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 overflow-hidden">
+                {getImage('studio-location') ? <img src={getImage('studio-location')} alt="Location" className="w-full h-full object-cover" loading="lazy" /> : <span className="text-4xl">🏠</span>}
+              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Booking Modal */}
-      <AnimatePresence>
-        {showBookingModal && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center px-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeBookingModal}
-            />
-
-            <motion.div
-              className="relative bg-[#0a0a0a] border border-white/10 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            >
-              <button
-                onClick={closeBookingModal}
-                className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition z-10"
-              >
-                ✕
-              </button>
-
-              <div className="p-8">
-                {submitted ? (
-                  <div className="text-center py-8">
-                    <motion.span 
-                      className="text-6xl block mb-4"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', bounce: 0.5 }}
-                    >
-                      ✅
-                    </motion.span>
-                    <h3 className="text-2xl font-bold mb-2">Booking Submitted!</h3>
-                    <p className="text-gray-500 mb-4">
-                      I'll confirm your session via email within 24 hours.
-                    </p>
-                    <p className="text-[#8B5CF6] font-medium">
-                      Check your inbox at {formData.email}
-                    </p>
+      {/* Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-fade-in">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeBookingModal} />
+          <div className="relative bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+            <button onClick={closeBookingModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition">✕</button>
+            <div className="p-5">
+              {submitted ? (
+                <div className="text-center py-6">
+                  <span className="text-5xl block mb-3 animate-bounce-in">✅</span>
+                  <h3 className="text-xl font-bold mb-2">Submitted!</h3>
+                  <p className="text-gray-500 text-sm">I'll confirm within 24 hours.</p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-xl font-bold mb-1">Complete Booking</h3>
+                  <p className="text-gray-500 mb-6 text-sm">Fill in your details</p>
+                  <div className="bg-white/5 rounded-xl p-3 mb-6 text-sm">
+                    <div className="flex justify-between mb-1"><span className="text-gray-400">Date</span><span>{selectedDate && formatDate(selectedDate)}</span></div>
+                    <div className="flex justify-between mb-1"><span className="text-gray-400">Hours</span><span>{selectedHours.map(h => `${h}:00`).join(', ')}</span></div>
+                    {includeMixMaster && <div className="flex justify-between mb-1"><span className="text-gray-400">Mix/Master</span><span>€{MIX_MASTER_RATE}</span></div>}
+                    <div className="border-t border-white/10 pt-1 mt-1 flex justify-between font-semibold"><span>Total</span><span className="text-[#8B5CF6]">€{calculateTotal()}</span></div>
                   </div>
-                ) : (
-                  <>
-                    <h3 className="text-2xl font-bold mb-2">Complete Your Booking</h3>
-                    <p className="text-gray-500 mb-8">Fill in your details to confirm</p>
-
-                    {/* Booking Summary */}
-                    <div className="bg-white/5 rounded-2xl p-4 mb-8 text-sm">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-gray-400">Date</span>
-                        <span>{selectedDate && formatDate(selectedDate)}</span>
-                      </div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-gray-400">Hours</span>
-                        <span>{selectedHours.map(h => `${h}:00`).join(', ')}</span>
-                      </div>
-                      {includeMixMaster && (
-                        <div className="flex justify-between mb-2">
-                          <span className="text-gray-400">Mix & Master</span>
-                          <span>€{MIX_MASTER_RATE}</span>
-                        </div>
-                      )}
-                      <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold">
-                        <span>Total</span>
-                        <span className="text-[#8B5CF6]">€{calculateTotal()}</span>
-                      </div>
-                    </div>
-
-                    {submitError && (
-                      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-red-400 text-sm">
-                        {submitError}
-                      </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Name *</label>
-                        <input
-                          type="text"
-                          required
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
-                          placeholder="Your name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Email *</label>
-                        <input
-                          type="email"
-                          required
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
-                          placeholder="your@email.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Phone</label>
-                        <input
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50"
-                          placeholder="+49 123 456789"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Message (optional)</label>
-                        <textarea
-                          value={formData.message}
-                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                          rows={3}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#8B5CF6]/50 resize-none"
-                          placeholder="Tell me about your project..."
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className={`w-full py-4 rounded-full font-semibold transition flex items-center justify-center gap-2 ${
-                          isSubmitting 
-                            ? 'bg-white/10 text-gray-500 cursor-not-allowed' 
-                            : 'bg-[#8B5CF6] hover:bg-[#7C3AED]'
-                        }`}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <motion.div
-                              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            />
-                            Submitting...
-                          </>
-                        ) : (
-                          'Confirm Booking Request'
-                        )}
-                      </button>
-
-                      <p className="text-xs text-gray-500 text-center">
-                        I'll confirm your booking via email within 24 hours
-                      </p>
-                    </form>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  {submitError && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4 text-red-400 text-xs">{submitError}</div>}
+                  <form onSubmit={handleSubmit} className="space-y-3">
+                    {[{ k: 'name', t: 'text', p: 'Name *', r: true }, { k: 'email', t: 'email', p: 'Email *', r: true }, { k: 'phone', t: 'tel', p: 'Phone' }].map(f => (
+                      <input key={f.k} type={f.t} required={f.r} value={formData[f.k]} onChange={(e) => setFormData({ ...formData, [f.k]: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50" placeholder={f.p} />
+                    ))}
+                    <textarea value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} rows={2}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50 resize-none" placeholder="Message (optional)" />
+                    <button type="submit" disabled={isSubmitting}
+                      className={`w-full py-3 rounded-full font-semibold transition flex items-center justify-center gap-2 text-sm ${isSubmitting ? 'bg-white/10 text-gray-500' : 'bg-[#8B5CF6] hover:bg-[#7C3AED] hover:scale-105'}`}>
+                      {isSubmitting ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</> : 'Confirm Booking'}
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
+
+      <style jsx global>{`
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bounce-in { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes glow-pulse { 0%, 100% { opacity: 0.08; transform: scale(1); } 50% { opacity: 0.15; transform: scale(1.05); } }
+        @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
+        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        .animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+        .animate-bounce-in { animation: bounce-in 0.5s ease-out forwards; }
+        .animate-glow-pulse { animation: glow-pulse 4s ease-in-out infinite; }
+        .animate-wave { animation: wave 3s linear infinite; }
+        .animate-wave-delayed { animation: wave 4s linear infinite; }
+      `}</style>
     </main>
   )
 }
