@@ -1,5 +1,6 @@
 import './globals.css'
-import Cursor from './components/Cursor'
+import SmoothScroll from './components/SmoothScroll'
+import { CustomCursor } from './components/animations'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trproductions.de'
@@ -94,8 +95,10 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="https://supabase.co" />
       </head>
       <body>
-        {children}
-        <Cursor />
+        <SmoothScroll>
+          {children}
+        </SmoothScroll>
+        <CustomCursor />
         <SpeedInsights />
       </body>
     </html>
