@@ -48,6 +48,61 @@ body {
   50% { opacity: 0.15; transform: scale(1.05); }
 }
 
+/* Floating orbs - slow drift around the screen */
+@keyframes orb-1 {
+  0%, 100% { top: 10%; left: 10%; }
+  25% { top: 30%; left: 70%; }
+  50% { top: 60%; left: 50%; }
+  75% { top: 40%; left: 20%; }
+}
+
+@keyframes orb-2 {
+  0%, 100% { top: 70%; right: 10%; }
+  33% { top: 20%; right: 30%; }
+  66% { top: 50%; right: 60%; }
+}
+
+@keyframes orb-3 {
+  0%, 100% { bottom: 20%; left: 30%; }
+  50% { bottom: 50%; left: 60%; }
+}
+
+/* Particles floating up */
+@keyframes particle {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.4; }
+  100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+}
+
+/* Animated gradient */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-orb-1 { animation: orb-1 30s ease-in-out infinite; }
+.animate-orb-2 { animation: orb-2 25s ease-in-out infinite; }
+.animate-orb-3 { animation: orb-3 35s ease-in-out infinite; }
+.animate-particle { animation: particle 20s linear infinite; }
+
+.bg-gradient-animate {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.03) 0%,
+    transparent 25%,
+    rgba(109, 40, 217, 0.02) 50%,
+    transparent 75%,
+    rgba(167, 139, 250, 0.03) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 20s ease infinite;
+}
+
 /* Floating particles animation */
 @keyframes float {
   0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
@@ -78,6 +133,91 @@ body {
 @keyframes wave {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50px); }
+}
+
+/* SVG Wave path animations - using stroke-dashoffset for movement effect */
+@keyframes wave-path {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.04;
+  }
+  50% {
+    opacity: 0.08;
+  }
+  100% {
+    stroke-dashoffset: -100;
+    opacity: 0.04;
+  }
+}
+
+@keyframes wave-path-reverse {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.03;
+  }
+  50% {
+    opacity: 0.07;
+  }
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0.03;
+  }
+}
+
+@keyframes wave-path-slow {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.02;
+  }
+  50% {
+    opacity: 0.05;
+  }
+  100% {
+    stroke-dashoffset: -50;
+    opacity: 0.02;
+  }
+}
+
+/* Equalizer bar animation - bouncing bars like audio EQ */
+@keyframes eq-bar {
+  0%, 100% {
+    transform: scaleY(0.4);
+    opacity: 0.15;
+  }
+  25% {
+    transform: scaleY(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scaleY(0.6);
+    opacity: 0.2;
+  }
+  75% {
+    transform: scaleY(0.9);
+    opacity: 0.22;
+  }
+}
+
+/* Spectrum bar animation - frequency visualizer effect */
+@keyframes spectrum-bar {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Waveform bar animation - subtle pulse */
+@keyframes waveform-bar {
+  0%, 100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.5);
+    opacity: 0.6;
+  }
 }
 
 /* Slide in from right (panels) */
@@ -111,6 +251,11 @@ body {
 .animate-waveform { animation: waveform 0.6s ease-in-out infinite alternate; }
 .animate-wave { animation: wave 3s linear infinite; }
 .animate-wave-delayed { animation: wave 4s linear infinite; }
+.animate-wave-path { animation: wave-path 4s ease-in-out infinite; }
+.animate-wave-path-reverse { animation: wave-path-reverse 5s ease-in-out infinite; }
+.animate-wave-path-slow { animation: wave-path-slow 7s ease-in-out infinite; }
+.animate-eq-bar { animation: eq-bar 0.8s ease-in-out infinite; transform-origin: bottom; }
+.animate-spectrum-bar { animation: spectrum-bar 1.2s ease-in-out infinite; }
 .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
 .animate-bounce-in { animation: bounce-in 0.5s ease-out forwards; }
 .animate-spin { animation: spin 1s linear infinite; }
@@ -121,45 +266,6 @@ body {
 .animation-delay-300 { animation-delay: 0.3s; }
 .animation-delay-400 { animation-delay: 0.4s; }
 .animation-delay-500 { animation-delay: 0.5s; }
-
-/* ========================================
-   CUSTOM CURSOR
-   ======================================== */
-
-#cursor {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #8B5CF6;
-  border-radius: 50%;
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  transition: transform 0.15s ease, background-color 0.2s ease;
-  transform: translate(-50%, -50%);
-  display: none;
-}
-
-#cursor-glow {
-  width: 40px;
-  height: 40px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, transparent 70%);
-  border-radius: 50%;
-  position: fixed;
-  pointer-events: none;
-  z-index: 9998;
-  transition: transform 0.25s ease;
-  transform: translate(-50%, -50%);
-  display: none;
-}
-
-#cursor.active, #cursor-glow.active {
-  display: block;
-}
-
-#cursor.hover {
-  transform: translate(-50%, -50%) scale(1.5);
-  background-color: rgba(139, 92, 246, 0.2);
-}
 
 /* ========================================
    CUSTOM SCROLLBAR

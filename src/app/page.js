@@ -221,58 +221,46 @@ export default function Home() {
           {/* Hero Text */}
           <div
             ref={heroTextRef}
-            className={`relative z-10 text-center lg:text-left lg:max-w-lg transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+            className="relative z-10 text-center lg:text-left lg:max-w-lg"
           >
-            <p className="text-gray-500 font-medium mb-4 sm:mb-6 tracking-[0.2em] sm:tracking-[0.3em] uppercase text-[10px] sm:text-xs">
-              <GlitchText>Music Producer</GlitchText>
+            <p className="text-gray-500 font-medium mb-4 sm:mb-6 tracking-[0.2em] sm:tracking-[0.3em] uppercase text-[10px] sm:text-xs animate-slide-up">
+              Music Producer
             </p>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 tracking-tight">
-              {mounted && (
-                <>
-                  <SplitText className="inline-block">TR</SplitText>{' '}
-                  <SplitText className="text-[#8B5CF6] inline-block" delay={0.3}>Productions</SplitText>
-                </>
-              )}
+              <span className="inline-block animate-slide-up">TR</span>{' '}
+              <span className="text-[#8B5CF6] inline-block animate-slide-up animation-delay-100">Productions</span>
             </h1>
 
-            <div className={`text-base sm:text-lg md:text-xl text-gray-500 mb-6 sm:mb-8 max-w-sm sm:max-w-md mx-auto lg:mx-0 leading-relaxed transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-              {mounted && <RevealWords>Industry ready sound crafted to stand out.</RevealWords>}
-            </div>
+            <p className="text-base sm:text-lg md:text-xl text-gray-500 mb-6 sm:mb-8 max-w-sm sm:max-w-md mx-auto lg:mx-0 leading-relaxed animate-slide-up animation-delay-200">
+              Industry ready sound crafted to stand out.
+            </p>
 
-            <div className={`flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start transition-all duration-1000 delay-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-              <MagneticLink
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start animate-slide-up animation-delay-300">
+              <a
                 href="/beats"
-                className="group bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] px-6 sm:px-8 py-3.5 sm:py-4 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/25 flex items-center justify-center gap-2 text-sm sm:text-base"
-                data-cursor-text="Browse"
+                className="group bg-[#8B5CF6] hover:bg-[#7C3AED] active:bg-[#6D28D9] px-6 sm:px-8 py-3.5 sm:py-4 rounded-full font-semibold transition-all hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-[#8B5CF6]/25 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 Browse Beats
                 <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </MagneticLink>
-              <MagneticLink
+              </a>
+              <a
                 href="/studio"
-                className="border border-white/20 hover:border-white/40 active:border-white/60 hover:bg-white/5 active:bg-white/10 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full font-semibold transition-all text-sm sm:text-base"
-                data-cursor-text="Book"
+                className="border border-white/20 hover:border-white/40 active:border-white/60 hover:bg-white/5 active:bg-white/10 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full font-semibold transition-all hover:scale-105 active:scale-95 text-sm sm:text-base"
               >
                 Book Studio Session
-              </MagneticLink>
+              </a>
             </div>
 
-            <div className={`flex flex-wrap justify-center lg:justify-start gap-x-4 sm:gap-x-6 gap-y-2 mt-8 sm:mt-12 text-xs sm:text-sm text-gray-500 transition-all duration-1000 delay-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-x-4 sm:gap-x-6 gap-y-2 mt-8 sm:mt-12 text-xs sm:text-sm text-gray-500 animate-slide-up animation-delay-400">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-white font-semibold">
-                  {mounted && <CountUp end={500} suffix="+" />}
-                </span> Beats
+                <span className="text-white font-semibold">500+</span> Beats
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-white font-semibold">
-                  {mounted && <CountUp end={200} suffix="+" duration={2.5} />}
-                </span> Artists
+                <span className="text-white font-semibold">200+</span> Artists
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-white font-semibold">
-                  {mounted && <CountUp end={5} suffix="+" duration={1.5} />}
-                </span> Years
+                <span className="text-white font-semibold">5+</span> Years
               </div>
             </div>
           </div>

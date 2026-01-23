@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Background from '../components/Background'
+import { BeatTiltCard, FadeUp, StaggerChildren } from '../components/animations'
 
 export default function BeatsPage() {
   const [isMobile, setIsMobile] = useState(true)
@@ -222,7 +223,7 @@ export default function BeatsPage() {
               {/* Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {filteredBeats.map((beat) => (
-                  <div key={beat.id} className="group bg-white/[0.02] border border-white/5 rounded-xl md:rounded-2xl overflow-hidden hover:border-[#8B5CF6]/30 transition-all duration-300 hover:-translate-y-1">
+                  <BeatTiltCard key={beat.id} className="group rounded-xl md:rounded-2xl overflow-hidden">
                     {/* Cover */}
                     <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] relative cursor-pointer overflow-hidden" onClick={() => handlePlay(beat)}>
                       {beat.image_url ? (
@@ -300,7 +301,7 @@ export default function BeatsPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </BeatTiltCard>
                 ))}
               </div>
 

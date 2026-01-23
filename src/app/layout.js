@@ -1,6 +1,7 @@
 import './globals.css'
 import SmoothScroll from './components/SmoothScroll'
-import { CustomCursor } from './components/animations'
+import CustomCursor from './components/animations/Cursor'
+import PageTransitionProvider from './components/PageTransitionProvider'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trproductions.de'
@@ -96,7 +97,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <SmoothScroll>
-          {children}
+          <PageTransitionProvider>
+            {children}
+          </PageTransitionProvider>
         </SmoothScroll>
         <CustomCursor />
         <SpeedInsights />
