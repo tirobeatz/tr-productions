@@ -4,17 +4,112 @@
   scroll-behavior: smooth;
   cursor: none;
 }
+
 body {
   background-color: #050505;
-  background-image: 
+  background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.25), transparent),
     radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.15), transparent),
     radial-gradient(ellipse 40% 30% at 0% 80%, rgba(124, 58, 237, 0.12), transparent);
   background-attachment: fixed;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Custom cursor */
+/* ========================================
+   ANIMATIONS - Shared across all pages
+   ======================================== */
+
+/* Slide up entrance animation */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glow pulse for background effects */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.08; transform: scale(1); }
+  50% { opacity: 0.15; transform: scale(1.05); }
+}
+
+/* Floating particles animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
+  25% { transform: translateY(-30px) translateX(15px); opacity: 0.6; }
+  50% { transform: translateY(-15px) translateX(-15px); opacity: 0.3; }
+  75% { transform: translateY(-40px) translateX(10px); opacity: 0.5; }
+}
+
+/* Slow bounce for scroll indicators */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0) translateX(-50%); }
+  50% { transform: translateY(-10px) translateX(-50%); }
+}
+
+/* Audio equalizer bars */
+@keyframes equalizer {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Waveform visualization */
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1.2); }
+}
+
+/* Sound wave movement */
+@keyframes wave {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50px); }
+}
+
+/* Slide in from right (panels) */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Bounce in (success icons) */
+@keyframes bounce-in {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Spin animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   ANIMATION UTILITY CLASSES
+   ======================================== */
+
+.animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+.animate-glow-pulse { animation: glow-pulse 4s ease-in-out infinite; }
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
+.animate-equalizer { animation: equalizer 0.5s ease-in-out infinite; }
+.animate-waveform { animation: waveform 0.6s ease-in-out infinite alternate; }
+.animate-wave { animation: wave 3s linear infinite; }
+.animate-wave-delayed { animation: wave 4s linear infinite; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+.animate-bounce-in { animation: bounce-in 0.5s ease-out forwards; }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Animation delays */
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-400 { animation-delay: 0.4s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+
+/* ========================================
+   CUSTOM CURSOR
+   ======================================== */
+
 #cursor {
   width: 20px;
   height: 20px;
@@ -50,7 +145,10 @@ body {
   background-color: rgba(139, 92, 246, 0.2);
 }
 
-/* Custom scrollbar */
+/* ========================================
+   CUSTOM SCROLLBAR
+   ======================================== */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -68,6 +166,10 @@ body {
   background: #7C3AED;
 }
 
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
 /* Flip card styles */
 .perspective-1000 {
   perspective: 1000px;
@@ -78,10 +180,25 @@ body {
   -webkit-backface-visibility: hidden;
 }
 
-/* Disable heavy effects on mobile */
+/* Safe area for mobile devices with notches */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 640px) {
+  button, a {
+    min-height: 44px;
+  }
+}
+
+/* ========================================
+   MOBILE PERFORMANCE OPTIMIZATIONS
+   ======================================== */
+
 @media (max-width: 768px) {
   * {
-    /* Disable blur on mobile */
+    /* Disable blur on mobile for performance */
     --tw-blur: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;

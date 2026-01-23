@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import Image from 'next/image'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import Background from './components/Background'
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(true)
@@ -172,61 +174,7 @@ export default function Home() {
         </audio>
       )}
       
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Main gradient glow - optimized for mobile */}
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] sm:w-[500px] md:w-[800px] lg:w-[1000px] h-[250px] sm:h-[350px] md:h-[500px] lg:h-[600px] bg-[#8B5CF6] opacity-[0.06] sm:opacity-[0.08] rounded-full animate-glow-pulse"
-          style={{ filter: isMobile ? 'blur(60px)' : 'blur(180px)' }}
-        />
-        
-        {/* Secondary glow - tablet and up */}
-        <div 
-          className="hidden md:block absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.05] rounded-full"
-          style={{ filter: 'blur(150px)' }}
-        />
-        
-        {/* Accent glow - tablet and up */}
-        <div 
-          className="hidden md:block absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-[#6D28D9] opacity-[0.04] rounded-full"
-          style={{ filter: 'blur(120px)' }}
-        />
-        
-        {/* Grid pattern - tablet and up */}
-        <div 
-          className="hidden md:block absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)
-            `,
-            backgroundSize: '80px 80px',
-          }}
-        />
-        
-        {/* Sound waves SVG - tablet and up */}
-        <svg className="hidden md:block absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="soundWaves" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
-              <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none" className="animate-wave"/>
-              <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none" className="animate-wave-delayed"/>
-              <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="0.5" fill="none" className="animate-wave"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#soundWaves)" />
-        </svg>
-
-        {/* Gradient overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
-        
-        {/* Noise texture - tablet and up */}
-        <div 
-          className="hidden md:block absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-          }}
-        />
-      </div>
+<Background />
 
       <Header />
       
@@ -329,7 +277,14 @@ export default function Home() {
                     onClick={togglePlay}
                   >
                     {featuredBeat.image_url && (
-                      <img src={featuredBeat.image_url} alt={featuredBeat.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <Image
+                        src={featuredBeat.image_url}
+                        alt={featuredBeat.title}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 640px) 280px, 300px"
+                        unoptimized
+                      />
                     )}
                     
                     {isPlaying && (
@@ -374,18 +329,19 @@ export default function Home() {
                     </div>
                   </div>
 
-                 <div className="flex items-center justify-between gap-3">
-  <div className="flex-shrink-0">
-    <span className="text-base sm:text-lg font-bold">{formatPrice(featuredBeat.price_mp3)}</span>
-    <span className="text-gray-500 text-[10px] sm:text-xs ml-1">Lease</span>
-  </div>
-  <a 
-    href="/beats" 
-    className="bg-white text-black px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[44px] flex items-center justify-center"
-  >
-    Buy Now
-  </a>
-</div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-shrink-0">
+                      <span className="text-base sm:text-lg font-bold">{formatPrice(featuredBeat.price_mp3)}</span>
+                      <span className="text-gray-500 text-[10px] sm:text-xs ml-1">Lease</span>
+                    </div>
+                    <a
+                      href="/beats"
+                      className="bg-white text-black px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors min-h-[44px] flex items-center justify-center"
+                    >
+                      Buy Now
+                    </a>
+                  </div>
+
                 </>
               ) : (
                 <div className="text-center py-10 sm:py-12">
@@ -478,7 +434,14 @@ export default function Home() {
                 >
                   <div className="aspect-square bg-gradient-to-br from-white/5 to-transparent relative overflow-hidden">
                     {beat.image_url ? (
-                      <img src={beat.image_url} alt={beat.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+                      <Image
+                        src={beat.image_url}
+                        alt={beat.title}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        unoptimized
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-3xl sm:text-4xl opacity-30">🎵</span>
@@ -587,78 +550,6 @@ export default function Home() {
       </section>
 
       <Footer />
-
-      {/* CSS Animations */}
-      <style jsx global>{`
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes glow-pulse {
-          0%, 100% { opacity: 0.08; transform: scale(1); }
-          50% { opacity: 0.15; transform: scale(1.05); }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
-          25% { transform: translateY(-30px) translateX(15px); opacity: 0.6; }
-          50% { transform: translateY(-15px) translateX(-15px); opacity: 0.3; }
-          75% { transform: translateY(-40px) translateX(10px); opacity: 0.5; }
-        }
-        
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0) translateX(-50%); }
-          50% { transform: translateY(-10px) translateX(-50%); }
-        }
-        
-        @keyframes equalizer {
-          0%, 100% { transform: scaleY(0.3); }
-          50% { transform: scaleY(1); }
-        }
-        
-        @keyframes waveform {
-          0%, 100% { transform: scaleY(0.5); }
-          50% { transform: scaleY(1.2); }
-        }
-        
-        @keyframes wave {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50px); }
-        }
-        
-        .animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
-        .animate-glow-pulse { animation: glow-pulse 4s ease-in-out infinite; }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
-        .animate-equalizer { animation: equalizer 0.5s ease-in-out infinite; }
-        .animate-waveform { animation: waveform 0.6s ease-in-out infinite alternate; }
-        .animate-wave { animation: wave 3s linear infinite; }
-        .animate-wave-delayed { animation: wave 4s linear infinite; }
-        
-        .animation-delay-100 { animation-delay: 0.1s; }
-        .animation-delay-200 { animation-delay: 0.2s; }
-        .animation-delay-300 { animation-delay: 0.3s; }
-        .animation-delay-400 { animation-delay: 0.4s; }
-        .animation-delay-500 { animation-delay: 0.5s; }
-        
-        /* Smooth scrolling */
-        html {
-          scroll-behavior: smooth;
-        }
-        
-        /* Better touch targets for mobile */
-        @media (max-width: 640px) {
-          button, a {
-            min-height: 44px;
-          }
-        }
-        
-        /* Prevent horizontal scroll */
-        body {
-          overflow-x: hidden;
-        }
-      `}</style>
     </main>
   )
 }

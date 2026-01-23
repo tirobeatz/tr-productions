@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import Image from 'next/image'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import Background from '../components/Background'
 
 export default function BeatsPage() {
   const [isMobile, setIsMobile] = useState(true)
@@ -161,28 +163,7 @@ export default function BeatsPage() {
         {currentBeat?.audio_url && <source src={currentBeat.audio_url} type="audio/mpeg" />}
       </audio>
 
-      {/* Background Effects - Matching Homepage */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] md:w-[1000px] h-[400px] md:h-[600px] bg-[#8B5CF6] opacity-[0.08] rounded-full animate-glow-pulse"
-          style={{ filter: isMobile ? 'blur(80px)' : 'blur(180px)' }}
-        />
-        <div className="hidden md:block absolute bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-[#8B5CF6] opacity-[0.05] rounded-full" style={{ filter: 'blur(150px)' }} />
-        <div className="hidden md:block absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-[#6D28D9] opacity-[0.04] rounded-full" style={{ filter: 'blur(120px)' }} />
-        <div className="hidden md:block absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `linear-gradient(rgba(139,92,246,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.3) 1px, transparent 1px)`, backgroundSize: '80px 80px' }} />
-        <svg className="hidden md:block absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="wavesBeats" x="0" y="0" width="100%" height="200" patternUnits="userSpaceOnUse">
-              <path d="M0 100 Q 150 50, 300 100 T 600 100 T 900 100 T 1200 100 T 1500 100 T 1800 100 T 2100 100 T 2400 100" stroke="#8B5CF6" strokeWidth="1" fill="none" className="animate-wave"/>
-              <path d="M0 130 Q 200 80, 400 130 T 800 130 T 1200 130 T 1600 130 T 2000 130 T 2400 130" stroke="#8B5CF6" strokeWidth="1" fill="none" className="animate-wave-delayed"/>
-              <path d="M0 70 Q 250 30, 500 70 T 1000 70 T 1500 70 T 2000 70 T 2500 70" stroke="#8B5CF6" strokeWidth="0.5" fill="none" className="animate-wave"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#wavesBeats)" />
-        </svg>
-        <div className="absolute bottom-0 left-0 right-0 h-[50%] bg-gradient-to-t from-[#050505] via-[#050505]/50 to-transparent" />
-        <div className="hidden md:block absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
-      </div>
+<Background />
 
       <Header />
 
@@ -245,7 +226,7 @@ export default function BeatsPage() {
                     {/* Cover */}
                     <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] relative cursor-pointer overflow-hidden" onClick={() => handlePlay(beat)}>
                       {beat.image_url ? (
-                        <img src={beat.image_url} alt={beat.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                        <Image src={beat.image_url} alt={beat.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" unoptimized />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center"><span className="text-3xl md:text-5xl opacity-30">🎵</span></div>
                       )}
@@ -384,8 +365,8 @@ export default function BeatsPage() {
             <div className="p-4 md:p-8">
               {/* Beat Info */}
               <div className="flex items-center gap-3 md:gap-6 mb-5 md:mb-8 pb-5 md:pb-8 border-b border-white/10">
-                <div className="w-14 h-14 md:w-24 md:h-24 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg md:rounded-xl flex-shrink-0 overflow-hidden">
-                  {selectedBeat.image_url ? <img src={selectedBeat.image_url} alt={selectedBeat.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><span className="text-xl md:text-4xl">🎵</span></div>}
+                <div className="w-14 h-14 md:w-24 md:h-24 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg md:rounded-xl flex-shrink-0 overflow-hidden relative">
+                  {selectedBeat.image_url ? <Image src={selectedBeat.image_url} alt={selectedBeat.title} fill className="object-cover" sizes="96px" unoptimized /> : <div className="w-full h-full flex items-center justify-center"><span className="text-xl md:text-4xl">🎵</span></div>}
                 </div>
                 <div>
                   <h2 className="text-lg md:text-2xl font-bold mb-1">{selectedBeat.title}</h2>
@@ -445,8 +426,8 @@ export default function BeatsPage() {
           <div className="px-4 py-3 md:px-6 md:py-4">
             {/* Mobile Layout */}
             <div className="flex md:hidden items-center gap-3">
-              <div className="w-11 h-11 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex-shrink-0 overflow-hidden">
-                {currentBeat.image_url ? <img src={currentBeat.image_url} alt={currentBeat.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><span className="text-base">🎵</span></div>}
+              <div className="w-11 h-11 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex-shrink-0 overflow-hidden relative">
+                {currentBeat.image_url ? <Image src={currentBeat.image_url} alt={currentBeat.title} fill className="object-cover" sizes="44px" unoptimized /> : <div className="w-full h-full flex items-center justify-center"><span className="text-base">🎵</span></div>}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-sm truncate">{currentBeat.title}</h4>
@@ -463,8 +444,8 @@ export default function BeatsPage() {
             {/* Desktop Layout */}
             <div className="hidden md:flex items-center justify-between gap-6">
               <div className="flex items-center gap-4 min-w-0 w-1/4">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex-shrink-0 overflow-hidden">
-                  {currentBeat.image_url ? <img src={currentBeat.image_url} alt={currentBeat.title} className="w-full h-full object-cover" /> : <span className="text-lg flex items-center justify-center w-full h-full">🎵</span>}
+                <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex-shrink-0 overflow-hidden relative">
+                  {currentBeat.image_url ? <Image src={currentBeat.image_url} alt={currentBeat.title} fill className="object-cover" sizes="48px" unoptimized /> : <span className="text-lg flex items-center justify-center w-full h-full">🎵</span>}
                 </div>
                 <div className="min-w-0">
                   <h4 className="font-semibold text-sm truncate">{currentBeat.title}</h4>
@@ -504,18 +485,6 @@ export default function BeatsPage() {
 
       <Footer />
 
-      <style jsx global>{`
-        @keyframes equalizer { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
-        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @keyframes glow-pulse { 0%, 100% { opacity: 0.08; transform: scale(1); } 50% { opacity: 0.15; transform: scale(1.05); } }
-        @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
-        .animate-equalizer { animation: equalizer 0.5s ease-in-out infinite; }
-        .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
-        .animate-glow-pulse { animation: glow-pulse 4s ease-in-out infinite; }
-        .animate-wave { animation: wave 3s linear infinite; }
-        .animate-wave-delayed { animation: wave 4s linear infinite; }
-        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-      `}</style>
     </main>
   )
 }
