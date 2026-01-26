@@ -1110,15 +1110,13 @@ function SiteImagesManager({ images, onRefresh }) {
   const [copiedId, setCopiedId] = useState(null)
 
   const locations = [
-    { value: 'studio-main', label: 'Studio - Main', desc: 'Large photo on /studio' },
-    { value: 'studio-setup', label: 'Studio - Setup', desc: 'Equipment photo' },
-    { value: 'studio-vibe', label: 'Studio - Vibe', desc: 'Atmosphere photo' },
-    { value: 'studio-location', label: 'Studio - Location', desc: 'Location section' },
-    { value: 'about-profile', label: 'About - Profile', desc: 'Profile on /about' },
-    { value: 'about-studio', label: 'About - Studio', desc: 'Working in studio' },
-    { value: 'homepage-hero', label: 'Home - Hero', desc: 'Hero background' },
-    { value: 'homepage-about', label: 'Home - About', desc: 'About preview' },
-    { value: 'other', label: 'Other', desc: 'General purpose' },
+    { value: 'homepage-hero', label: 'Home - Hero', desc: 'Hero background image (scales on scroll)' },
+    { value: 'studio-main', label: 'Studio - Main', desc: 'Large hero photo on /studio' },
+    { value: 'studio-setup', label: 'Studio - Setup', desc: 'Equipment/gear photo' },
+    { value: 'studio-vibe', label: 'Studio - Vibe', desc: 'Atmosphere/vibe photo' },
+    { value: 'studio-location', label: 'Studio - Location', desc: 'Location section photo' },
+    { value: 'about-profile', label: 'About - Profile', desc: 'Your profile photo on /about' },
+    { value: 'about-studio', label: 'About - Studio', desc: 'Working in studio photo' },
   ]
 
   const openAdd = (loc = '') => { setEditingImage(null); setFormData({ name: '', location: loc, image_url: '', is_active: true }); setShowModal(true) }

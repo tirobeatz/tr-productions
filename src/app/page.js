@@ -30,6 +30,7 @@ export default function Home() {
   const [latestBeats, setLatestBeats] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [siteImages, setSiteImages] = useState([])
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -41,6 +42,10 @@ export default function Home() {
   const heroRef = useRef(null)
   const heroTextRef = useRef(null)
   const heroPlayerRef = useRef(null)
+  const heroImageRef = useRef(null)
+
+  // Get image by location
+  const getImage = (loc) => siteImages.find(img => img.location === loc)?.image_url
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -80,14 +85,35 @@ export default function Home() {
           scrub: 1.5,
         },
       })
+
+      // Hero image - scale down and fade as you scroll
+      if (heroImageRef.current) {
+        gsap.to(heroImageRef.current, {
+          scale: 1.15,
+          opacity: 0,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 1,
+          },
+        })
+      }
     })
 
     return () => ctx.revert()
-  }, [mounted, isMobile])
+  }, [mounted, isMobile, siteImages])
 
   useEffect(() => {
     fetchBeats()
+    fetchSiteImages()
   }, [])
+
+  const fetchSiteImages = async () => {
+    const { data } = await supabase.from('site_images').select('*').eq('is_active', true)
+    setSiteImages(data || [])
+  }
 
   const fetchBeats = async () => {
     setLoading(true)
@@ -200,8 +226,30 @@ export default function Home() {
       {/* Hero Section */}
       <section ref={heroRef} className="relative flex items-center justify-center min-h-[100svh] px-4 sm:px-6 pt-16 sm:pt-20 pb-8 sm:pb-0">
 
+        {/* Hero Background Image - only shows if uploaded */}
+        {getImage('homepage-hero') && (
+          <div
+            ref={heroImageRef}
+            className="absolute inset-0 z-0"
+          >
+            <Image
+              src={getImage('homepage-hero')}
+              alt="Hero background"
+              fill
+              className="object-cover"
+              sizes="100vw"
+              quality={75}
+              priority
+            />
+            {/* Gradient overlays for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/50" />
+            <div className="absolute inset-0 bg-[#050505]/40" />
+          </div>
+        )}
+
         {/* Floating particles - tablet and up */}
-        <Parallax speed={-0.3} className="hidden md:block absolute inset-0 overflow-hidden pointer-events-none">
+        <Parallax speed={-0.3} className="hidden md:block absolute inset-0 overflow-hidden pointer-events-none z-[1]">
           {[...Array(12)].map((_, i) => (
             <div
               key={i}
@@ -216,7 +264,7 @@ export default function Home() {
           ))}
         </Parallax>
 
-        <div className="max-w-6xl w-full mx-auto flex flex-col lg:flex-row gap-8 sm:gap-10 lg:gap-16 items-center justify-center">
+        <div className="max-w-6xl w-full mx-auto flex flex-col lg:flex-row gap-8 sm:gap-10 lg:gap-16 items-center justify-center relative z-10">
 
           {/* Hero Text */}
           <div
