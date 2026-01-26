@@ -2,14 +2,20 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 
-// Pre-defined particle positions (reduced count)
+// Pre-defined particle positions - more visible particles matching homepage style
 const particles = [
-  { left: '10%', top: '15%', opacity: 0.3, delay: '0s', duration: '20s' },
-  { left: '25%', top: '75%', opacity: 0.35, delay: '3s', duration: '24s' },
-  { left: '45%', top: '25%', opacity: 0.25, delay: '6s', duration: '22s' },
-  { left: '65%', top: '65%', opacity: 0.3, delay: '2s', duration: '26s' },
-  { left: '85%', top: '35%', opacity: 0.35, delay: '5s', duration: '18s' },
-  { left: '15%', top: '55%', opacity: 0.25, delay: '8s', duration: '21s' },
+  { left: '5%', top: '10%', opacity: 0.4, delay: '0s', duration: '4s', size: 4 },
+  { left: '13%', top: '28%', opacity: 0.4, delay: '0.5s', duration: '5s', size: 4 },
+  { left: '21%', top: '46%', opacity: 0.4, delay: '1s', duration: '4s', size: 4 },
+  { left: '29%', top: '64%', opacity: 0.4, delay: '1.5s', duration: '6s', size: 4 },
+  { left: '37%', top: '82%', opacity: 0.4, delay: '2s', duration: '5s', size: 4 },
+  { left: '45%', top: '19%', opacity: 0.4, delay: '2.5s', duration: '4s', size: 4 },
+  { left: '53%', top: '37%', opacity: 0.4, delay: '3s', duration: '6s', size: 4 },
+  { left: '61%', top: '55%', opacity: 0.4, delay: '3.5s', duration: '5s', size: 4 },
+  { left: '69%', top: '73%', opacity: 0.4, delay: '4s', duration: '4s', size: 4 },
+  { left: '77%', top: '15%', opacity: 0.4, delay: '4.5s', duration: '6s', size: 4 },
+  { left: '85%', top: '33%', opacity: 0.4, delay: '5s', duration: '5s', size: 4 },
+  { left: '93%', top: '51%', opacity: 0.4, delay: '5.5s', duration: '4s', size: 4 },
 ]
 
 export default function Background() {
@@ -70,15 +76,17 @@ export default function Background() {
     }
   }, [isMobile])
 
-  // Memoize particles to prevent re-renders
+  // Memoize particles to prevent re-renders - now using float animation like homepage
   const particleElements = useMemo(() => (
-    particles.slice(0, isMobile ? 4 : 6).map((p, i) => (
+    particles.slice(0, isMobile ? 6 : 12).map((p, i) => (
       <div
         key={i}
-        className="absolute w-[2px] h-[2px] bg-[#8B5CF6] rounded-full animate-particle"
+        className="absolute bg-[#8B5CF6] rounded-full animate-float"
         style={{
           left: p.left,
           top: p.top,
+          width: `${p.size || 4}px`,
+          height: `${p.size || 4}px`,
           opacity: p.opacity,
           animationDelay: p.delay,
           animationDuration: p.duration,

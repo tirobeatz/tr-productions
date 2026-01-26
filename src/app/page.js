@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import Image from 'next/image'
 import Header from './components/Header'
@@ -44,11 +44,14 @@ export default function Home() {
   const heroPlayerRef = useRef(null)
   const heroImageRef = useRef(null)
 
-  // Get image by location
-  const getImage = (loc) => {
+  // Get image by location - memoized to avoid re-calculating on every render
+  const getImage = useCallback((loc) => {
     const img = siteImages.find(img => img.location === loc)
     return img ? { url: img.image_url, focalX: img.focal_x ?? 50, focalY: img.focal_y ?? 50 } : null
-  }
+  }, [siteImages])
+
+  // Pre-compute hero image for render optimization
+  const heroImage = getImage('homepage-hero')
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -230,17 +233,17 @@ export default function Home() {
       <section ref={heroRef} className="relative flex items-center justify-center min-h-[100svh] px-4 sm:px-6 pt-16 sm:pt-20 pb-8 sm:pb-0">
 
         {/* Hero Background Image - only shows if uploaded */}
-        {getImage('homepage-hero') && (
+        {heroImage && (
           <div
             ref={heroImageRef}
             className="absolute inset-0 z-0"
           >
             <Image
-              src={getImage('homepage-hero').url}
+              src={heroImage.url}
               alt="Hero background"
               fill
               className="object-cover"
-              style={{ objectPosition: `${getImage('homepage-hero').focalX}% ${getImage('homepage-hero').focalY}%` }}
+              style={{ objectPosition: `${heroImage.focalX}% ${heroImage.focalY}%` }}
               sizes="100vw"
               quality={75}
               priority

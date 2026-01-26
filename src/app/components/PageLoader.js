@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, createContext, useContext } from 'react'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const LoaderContext = createContext({ isLoaded: false, setLoaded: () => {} })
@@ -11,8 +12,16 @@ export function PageLoaderProvider({ children }) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [showContent, setShowContent] = useState(false)
   const [progress, setProgress] = useState(0)
+  const pathname = usePathname()
 
   useEffect(() => {
+    // Skip loading screen for admin pages
+    if (pathname?.startsWith('/admin')) {
+      setIsLoaded(true)
+      setShowContent(true)
+      return
+    }
+
     // Check if already visited in this session
     try {
       const hasVisited = sessionStorage.getItem('tr-visited')
@@ -28,41 +37,35 @@ export function PageLoaderProvider({ children }) {
       return
     }
 
-    // Simple loading animation without Supabase dependency
-    const loadSite = async () => {
-      // Progress animation
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 95) {
-            clearInterval(progressInterval)
-            return 95
-          }
-          return prev + Math.random() * 15
-        })
-      }, 100)
+    // Simple timed loading - no Supabase dependency
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval)
+          return 100
+        }
+        return prev + 5
+      })
+    }, 40)
 
-      // Wait minimum time for nice animation
-      await new Promise(resolve => setTimeout(resolve, 800))
-
+    // Complete after ~800ms
+    const timer = setTimeout(() => {
       clearInterval(progressInterval)
       setProgress(100)
 
-      // Mark as visited
       try {
         sessionStorage.setItem('tr-visited', 'true')
-      } catch (e) {
-        // Ignore sessionStorage errors
-      }
+      } catch (e) {}
 
-      // Finish loading
-      setTimeout(() => {
-        setIsLoaded(true)
-        setTimeout(() => setShowContent(true), 200)
-      }, 150)
+      setIsLoaded(true)
+      setTimeout(() => setShowContent(true), 200)
+    }, 800)
+
+    return () => {
+      clearInterval(progressInterval)
+      clearTimeout(timer)
     }
-
-    loadSite()
-  }, [])
+  }, [pathname])
 
   return (
     <LoaderContext.Provider value={{ isLoaded, setLoaded: setIsLoaded }}>

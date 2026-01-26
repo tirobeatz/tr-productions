@@ -44,16 +44,10 @@ export async function signIn(email, password) {
     email,
     password
   })
-  
+
   if (error) return { error: error.message }
-  
-  // Check if user is admin
-  const adminCheck = await isAdmin()
-  if (!adminCheck) {
-    await supabase.auth.signOut()
-    return { error: 'You do not have admin access.' }
-  }
-  
+
+  // Skip admin check here - let the page handle it after login
   return { user: data.user }
 }
 

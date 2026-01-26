@@ -173,11 +173,11 @@ export default function BeatsPage() {
         <div className="max-w-7xl mx-auto">
           
           {/* Header */}
-          <div className={`text-center mb-8 md:mb-16 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <FadeUp className="text-center mb-8 md:mb-16">
             <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Beat Store</p>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-3 md:mb-4">Browse Beats</h1>
             <p className="text-gray-500 max-w-xl mx-auto text-sm md:text-base">Find your next hit. All beats are industry-ready and available for instant download.</p>
-          </div>
+          </FadeUp>
 
           {/* Filters */}
           <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-4 md:mb-6">
@@ -221,7 +221,7 @@ export default function BeatsPage() {
           ) : (
             <>
               {/* Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+              <StaggerChildren className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6" stagger={0.05}>
                 {filteredBeats.map((beat) => (
                   <BeatTiltCard key={beat.id} className="group rounded-xl md:rounded-2xl overflow-hidden">
                     {/* Cover */}
@@ -303,7 +303,7 @@ export default function BeatsPage() {
                     </div>
                   </BeatTiltCard>
                 ))}
-              </div>
+              </StaggerChildren>
 
               {/* No Results */}
               {filteredBeats.length === 0 && (

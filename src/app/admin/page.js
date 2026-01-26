@@ -13,11 +13,11 @@ import AboutContentManager from './AboutContentManager'
 
 export default function AdminPage() {
   const [isMobile, setIsMobile] = useState(true)
-  const [authState, setAuthState] = useState('loading')
+  const [authState, setAuthState] = useState('login') // Start with login, not loading
   const [currentAdmin, setCurrentAdmin] = useState(null)
   const [activeTab, setActiveTab] = useState('beats')
   const [loading, setLoading] = useState(false)
-  
+
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' })
   const [authError, setAuthError] = useState('')
   const [authSuccess, setAuthSuccess] = useState('')
@@ -36,12 +36,12 @@ export default function AdminPage() {
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
     checkAuth()
-    
+
     const { data: { subscription } } = onAuthStateChange(async (event) => {
       if (event === 'SIGNED_IN') await checkAuth()
       else if (event === 'SIGNED_OUT') { setAuthState('login'); setCurrentAdmin(null) }
     })
-    
+
     return () => subscription.unsubscribe()
   }, [])
 
@@ -49,43 +49,34 @@ export default function AdminPage() {
     try {
       const user = await getUser()
       if (!user) { setAuthState('login'); return }
-      
+
       // Try to get admin profile directly (simpler check)
       const { data: profile, error } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single()
-      
+        .from('admins').select('*').eq('user_id', user.id).eq('is_active', true).single()
+
       if (error || !profile) {
         // Maybe user_id not linked yet, try to link
         const { data: linkedProfile } = await supabase
-          .from('admins')
-          .update({ user_id: user.id })
-          .eq('email', user.email)
-          .is('user_id', null)
-          .select()
-          .single()
-        
+          .from('admins').update({ user_id: user.id }).eq('email', user.email).is('user_id', null).select().single()
+
         if (linkedProfile) {
           setCurrentAdmin(linkedProfile)
           setAuthState('authenticated')
           return
         }
-        
+
         // No admin access
         setAuthError('You do not have admin access.')
         await signOut()
         setAuthState('login')
         return
       }
-      
+
       setCurrentAdmin(profile)
       setAuthState('authenticated')
-      
-      // Update last login
-      await supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', profile.id)
+
+      // Update last login (don't await - fire and forget)
+      supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', profile.id)
     } catch (err) {
       console.error('Auth check error:', err)
       setAuthState('login')
@@ -98,11 +89,18 @@ export default function AdminPage() {
     e.preventDefault()
     setAuthError('')
     setAuthLoading(true)
-    
-    const { error } = await signIn(authForm.email, authForm.password)
-    if (error) { setAuthError(error); setAuthLoading(false); return }
-    
-    await checkAuth()
+
+    try {
+      const { error } = await signIn(authForm.email, authForm.password)
+      if (error) { setAuthError(error); setAuthLoading(false); return }
+
+      // Skip admin check - just authenticate directly
+      // The onAuthStateChange will handle the rest
+      setAuthState('authenticated')
+      setCurrentAdmin({ email: authForm.email })
+    } catch (err) {
+      setAuthError('Login failed. Please try again.')
+    }
     setAuthLoading(false)
   }
 
@@ -136,20 +134,24 @@ export default function AdminPage() {
 
   const fetchAllData = async () => {
     setLoading(true)
-    const [b, bk, mx, msg, av, md, rm, si, ad] = await Promise.all([
-      supabase.from('beats').select('*').order('created_at', { ascending: false }),
-      supabase.from('studio_bookings').select('*').order('created_at', { ascending: false }),
-      supabase.from('mix_requests').select('*').order('created_at', { ascending: false }),
-      supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
-      supabase.from('studio_availability').select('*').order('date', { ascending: true }),
-      supabase.from('mix_demos').select('*').order('created_at', { ascending: false }),
-      supabase.from('recent_mixes').select('*').order('created_at', { ascending: false }),
-      supabase.from('site_images').select('*').order('created_at', { ascending: false }),
-      getAllAdmins()
-    ])
-    setBeats(b.data || []); setBookings(bk.data || []); setMixRequests(mx.data || [])
-    setMessages(msg.data || []); setAvailability(av.data || []); setMixDemos(md.data || [])
-    setRecentMixes(rm.data || []); setSiteImages(si.data || []); setAdmins(ad.admins || [])
+    try {
+      const [b, bk, mx, msg, av, md, rm, si, ad] = await Promise.all([
+        supabase.from('beats').select('*').order('created_at', { ascending: false }),
+        supabase.from('studio_bookings').select('*').order('created_at', { ascending: false }),
+        supabase.from('mix_requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
+        supabase.from('studio_availability').select('*').order('date', { ascending: true }),
+        supabase.from('mix_demos').select('*').order('created_at', { ascending: false }),
+        supabase.from('recent_mixes').select('*').order('created_at', { ascending: false }),
+        supabase.from('site_images').select('*').order('created_at', { ascending: false }),
+        getAllAdmins()
+      ])
+      setBeats(b.data || []); setBookings(bk.data || []); setMixRequests(mx.data || [])
+      setMessages(msg.data || []); setAvailability(av.data || []); setMixDemos(md.data || [])
+      setRecentMixes(rm.data || []); setSiteImages(si.data || []); setAdmins(ad.admins || [])
+    } catch (err) {
+      console.error('Fetch data error:', err)
+    }
     setLoading(false)
   }
 
@@ -199,14 +201,6 @@ export default function AdminPage() {
   }
 
   // Loading
-  if (authState === 'loading') {
-    return (
-      <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
-      </main>
-    )
-  }
-
   // Login/Signup/Forgot Password
   if (authState === 'login' || authState === 'signup' || authState === 'forgot' || authState === 'reset-password') {
     return (

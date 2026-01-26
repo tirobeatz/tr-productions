@@ -45,10 +45,12 @@ export default function SmoothScroll({ children }) {
     // Connect Lenis to GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update)
 
-    gsap.ticker.add((time) => {
+    // Store RAF callback reference for proper cleanup
+    const rafCallback = (time) => {
       lenis.raf(time * 1000)
-    })
+    }
 
+    gsap.ticker.add(rafCallback)
     gsap.ticker.lagSmoothing(0)
 
     // Store on window for access
@@ -57,7 +59,7 @@ export default function SmoothScroll({ children }) {
     // Cleanup
     return () => {
       lenis.destroy()
-      gsap.ticker.remove(lenis.raf)
+      gsap.ticker.remove(rafCallback)
       window.lenis = null
     }
   }, [isMobile])

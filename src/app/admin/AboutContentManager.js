@@ -45,15 +45,18 @@ export default function AboutContentManager({ onRefresh }) {
 
   const fetchContent = async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('about_content').select('*').single()
-    if (error) {
-      // Create default if not exists
-      if (error.code === 'PGRST116') {
-        const { data: newData } = await supabase.from('about_content').insert([{}]).select().single()
-        setContent(newData)
+    try {
+      const { data, error } = await supabase.from('about_content').select('*').single()
+      if (error) {
+        // Table doesn't exist or no row - show setup message
+        console.log('About content fetch error:', error.code, error.message)
+        setContent(null)
+      } else {
+        setContent(data)
       }
-    } else {
-      setContent(data)
+    } catch (err) {
+      console.error('About content error:', err)
+      setContent(null)
     }
     setLoading(false)
   }
