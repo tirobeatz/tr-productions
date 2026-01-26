@@ -60,7 +60,10 @@ export default function StudioPage() {
   const fetchBookings = async () => { const { data } = await supabase.from('studio_bookings').select('*').in('status', ['pending', 'confirmed']); setBookings(data || []) }
   const fetchSiteImages = async () => { const { data } = await supabase.from('site_images').select('*').eq('is_active', true); setSiteImages(data || []) }
 
-  const getImage = (loc) => siteImages.find(img => img.location === loc)?.image_url
+  const getImage = (loc) => {
+    const img = siteImages.find(img => img.location === loc)
+    return img ? { url: img.image_url, focalX: img.focal_x ?? 50, focalY: img.focal_y ?? 50 } : null
+  }
   const generateCalendarDays = () => {
     const y = currentMonth.getFullYear(), m = currentMonth.getMonth(), first = new Date(y, m, 1), days = []
     for (let i = 0; i < first.getDay(); i++) days.push(null)
@@ -163,14 +166,17 @@ export default function StudioPage() {
           </div>
           <div className={`grid md:grid-cols-3 gap-3 ${anim('gallery')}`}>
             <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden relative">
-              {getImage('studio-main') ? <Image src={getImage('studio-main')} alt="Studio" fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 100vw, 66vw" quality={60} /> : <span className="text-5xl group-hover:scale-110 transition-transform">🎙️</span>}
+              {getImage('studio-main') ? <Image src={getImage('studio-main').url} alt="Studio" fill className="object-cover group-hover:scale-105 transition-transform duration-500" style={{ objectPosition: `${getImage('studio-main').focalX}% ${getImage('studio-main').focalY}%` }} sizes="(max-width: 768px) 100vw, 66vw" quality={60} /> : <span className="text-5xl group-hover:scale-110 transition-transform">🎙️</span>}
             </div>
             <div className="flex flex-row md:flex-col gap-3">
-              {[{ loc: 'studio-setup', icon: '🎧' }, { loc: 'studio-vibe', icon: '🛋️' }].map(({ loc, icon }) => (
-                <div key={loc} className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden min-h-[100px] relative">
-                  {getImage(loc) ? <Image src={getImage(loc)} alt={loc} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 33vw" quality={60} /> : <span className="text-3xl group-hover:scale-110 transition-transform">{icon}</span>}
-                </div>
-              ))}
+              {[{ loc: 'studio-setup', icon: '🎧' }, { loc: 'studio-vibe', icon: '🛋️' }].map(({ loc, icon }) => {
+                const img = getImage(loc)
+                return (
+                  <div key={loc} className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden min-h-[100px] relative">
+                    {img ? <Image src={img.url} alt={loc} fill className="object-cover group-hover:scale-105 transition-transform duration-500" style={{ objectPosition: `${img.focalX}% ${img.focalY}%` }} sizes="(max-width: 768px) 50vw, 33vw" quality={60} /> : <span className="text-3xl group-hover:scale-110 transition-transform">{icon}</span>}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -331,7 +337,7 @@ export default function StudioPage() {
                 </div>
               </div>
               <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 overflow-hidden relative">
-                {getImage('studio-location') ? <Image src={getImage('studio-location')} alt="Location" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" quality={60} /> : <span className="text-4xl">🏠</span>}
+                {getImage('studio-location') ? <Image src={getImage('studio-location').url} alt="Location" fill className="object-cover" style={{ objectPosition: `${getImage('studio-location').focalX}% ${getImage('studio-location').focalY}%` }} sizes="(max-width: 768px) 100vw, 50vw" quality={60} /> : <span className="text-4xl">🏠</span>}
               </div>
             </div>
           </div>

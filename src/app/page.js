@@ -45,7 +45,10 @@ export default function Home() {
   const heroImageRef = useRef(null)
 
   // Get image by location
-  const getImage = (loc) => siteImages.find(img => img.location === loc)?.image_url
+  const getImage = (loc) => {
+    const img = siteImages.find(img => img.location === loc)
+    return img ? { url: img.image_url, focalX: img.focal_x ?? 50, focalY: img.focal_y ?? 50 } : null
+  }
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -233,10 +236,11 @@ export default function Home() {
             className="absolute inset-0 z-0"
           >
             <Image
-              src={getImage('homepage-hero')}
+              src={getImage('homepage-hero').url}
               alt="Hero background"
               fill
               className="object-cover"
+              style={{ objectPosition: `${getImage('homepage-hero').focalX}% ${getImage('homepage-hero').focalY}%` }}
               sizes="100vw"
               quality={75}
               priority

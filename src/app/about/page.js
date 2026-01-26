@@ -36,7 +36,10 @@ export default function AboutPage() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [konamiProgress])
 
-  const getImage = (loc) => siteImages.find(img => img.location === loc)?.image_url
+  const getImage = (loc) => {
+    const img = siteImages.find(img => img.location === loc)
+    return img ? { url: img.image_url, focalX: img.focal_x ?? 50, focalY: img.focal_y ?? 50 } : null
+  }
   const toggleFlip = (i) => setFlippedCards(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i])
 
   // Count up hook
@@ -223,14 +226,17 @@ export default function AboutPage() {
       <section className="relative py-16 md:py-20 px-4 md:px-6">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-4 md:gap-8">
-            {[{ loc: 'about-profile', icon: '👨‍🎤', label: 'Profile Photo' }, { loc: 'about-studio', icon: '🎧', label: 'Working in Studio' }].map((item, i) => (
-              <motion.div key={item.loc} initial={{ opacity: 0, x: i === 0 ? -20 : 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl md:rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden relative">
-                {getImage(item.loc) ? <Image src={getImage(item.loc)} alt={item.label} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" quality={60} /> : (
-                  <div className="text-center"><span className="text-6xl md:text-8xl block mb-4">{item.icon}</span><p className="text-gray-500 text-sm">{item.label}</p></div>
-                )}
-              </motion.div>
-            ))}
+            {[{ loc: 'about-profile', icon: '👨‍🎤', label: 'Profile Photo' }, { loc: 'about-studio', icon: '🎧', label: 'Working in Studio' }].map((item, i) => {
+              const img = getImage(item.loc)
+              return (
+                <motion.div key={item.loc} initial={{ opacity: 0, x: i === 0 ? -20 : 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl md:rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden relative">
+                  {img ? <Image src={img.url} alt={item.label} fill className="object-cover" style={{ objectPosition: `${img.focalX}% ${img.focalY}%` }} sizes="(max-width: 768px) 100vw, 50vw" quality={60} /> : (
+                    <div className="text-center"><span className="text-6xl md:text-8xl block mb-4">{item.icon}</span><p className="text-gray-500 text-sm">{item.label}</p></div>
+                  )}
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>

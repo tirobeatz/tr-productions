@@ -1100,11 +1100,47 @@ function MessagesManager({ messages, onRefresh, formatDate }) {
   )
 }
 
+// ============ FOCAL POINT PICKER ============
+function FocalPointPicker({ imageUrl, focalX, focalY, onChange }) {
+  const handleClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+    onChange(x, y)
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm text-gray-400">Focal Point <span className="text-gray-600">(click to set)</span></label>
+      <div
+        className="relative aspect-video bg-black rounded-xl overflow-hidden cursor-crosshair border border-white/10"
+        onClick={handleClick}
+      >
+        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+        {/* Focal point indicator */}
+        <div
+          className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ left: `${focalX}%`, top: `${focalY}%` }}
+        >
+          <div className="absolute inset-0 border-2 border-white rounded-full shadow-lg" />
+          <div className="absolute inset-[10px] bg-white rounded-full" />
+        </div>
+        {/* Crosshair lines */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute bg-white/30 w-px h-full" style={{ left: `${focalX}%` }} />
+          <div className="absolute bg-white/30 h-px w-full" style={{ top: `${focalY}%` }} />
+        </div>
+      </div>
+      <p className="text-xs text-gray-500">Position: {focalX}% x {focalY}%</p>
+    </div>
+  )
+}
+
 // ============ SITE IMAGES MANAGER ============
 function SiteImagesManager({ images, onRefresh }) {
   const [showModal, setShowModal] = useState(false)
   const [editingImage, setEditingImage] = useState(null)
-  const [formData, setFormData] = useState({ name: '', location: '', image_url: '', is_active: true })
+  const [formData, setFormData] = useState({ name: '', location: '', image_url: '', is_active: true, focal_x: 50, focal_y: 50 })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [copiedId, setCopiedId] = useState(null)
@@ -1119,8 +1155,8 @@ function SiteImagesManager({ images, onRefresh }) {
     { value: 'about-studio', label: 'About - Studio', desc: 'Working in studio photo' },
   ]
 
-  const openAdd = (loc = '') => { setEditingImage(null); setFormData({ name: '', location: loc, image_url: '', is_active: true }); setShowModal(true) }
-  const openEdit = (i) => { setEditingImage(i); setFormData({ name: i.name || '', location: i.location || '', image_url: i.image_url || '', is_active: i.is_active !== false }); setShowModal(true) }
+  const openAdd = (loc = '') => { setEditingImage(null); setFormData({ name: '', location: loc, image_url: '', is_active: true, focal_x: 50, focal_y: 50 }); setShowModal(true) }
+  const openEdit = (i) => { setEditingImage(i); setFormData({ name: i.name || '', location: i.location || '', image_url: i.image_url || '', is_active: i.is_active !== false, focal_x: i.focal_x ?? 50, focal_y: i.focal_y ?? 50 }); setShowModal(true) }
 
   const upload = async (file) => {
     if (!file || !file.type.includes('image')) { alert('Select image'); return }
@@ -1195,6 +1231,14 @@ function SiteImagesManager({ images, onRefresh }) {
       <Modal show={showModal} onClose={() => setShowModal(false)} title={editingImage ? 'Edit Image' : 'Upload Image'}>
         <div className="space-y-4">
           <FileUpload label="Image" type="image" uploading={uploading} preview={formData.image_url} onUpload={upload} />
+          {formData.image_url && (
+            <FocalPointPicker
+              imageUrl={formData.image_url}
+              focalX={formData.focal_x}
+              focalY={formData.focal_y}
+              onChange={(x, y) => setFormData({ ...formData, focal_x: x, focal_y: y })}
+            />
+          )}
           <Input label="Image Name" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Studio Main" />
           <Select label="Location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} options={[{ value: '', label: 'Select location' }, ...locations.map(l => ({ value: l.value, label: l.label }))]} />
           {formData.location && <p className="text-gray-500 text-xs">{locations.find(l => l.value === formData.location)?.desc}</p>}
