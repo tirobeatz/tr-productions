@@ -78,7 +78,7 @@ export function Select({ label, options, className = '', ...props }) {
 
 // File Upload Component
 export function FileUpload({ label, type, uploading, preview, onUpload }) {
-  const accept = type === 'audio' ? 'audio/*' : 'image/*'
+  const accept = type === 'audio' ? '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*' : 'image/*'
   const icon = type === 'audio' ? '🔊' : '🖼️'
 
   return (

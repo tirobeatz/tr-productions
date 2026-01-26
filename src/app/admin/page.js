@@ -499,7 +499,7 @@ const Select = ({ label, options, ...props }) => (
 
 const FileUpload = ({ label, onUpload, uploading, preview, type = 'image' }) => {
   const ref = useRef(null)
-  const accept = type === 'image' ? 'image/*' : 'audio/*'
+  const accept = type === 'image' ? 'image/*' : '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*'
   const icon = type === 'image' ? '🖼️' : '🎵'
   return (
     <div>
@@ -995,14 +995,14 @@ function MixDemoManager({ demos, onRefresh }) {
             <div><p className="text-xs md:text-sm text-green-400">✓ Uploaded</p></div>
           </div>
           <div className="flex gap-2">
-            <input ref={type === 'raw' ? rawRef : mixedRef} type="file" accept="audio/*" onChange={e => upload(type, e.target.files?.[0])} className="hidden" />
+            <input ref={type === 'raw' ? rawRef : mixedRef} type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*" onChange={e => upload(type, e.target.files?.[0])} className="hidden" />
             <button onClick={() => (type === 'raw' ? rawRef : mixedRef).current?.click()} className="flex-1 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs md:text-sm">{uploading[type] ? 'Uploading...' : 'Replace'}</button>
             <button onClick={() => del(type)} className="px-3 md:px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-xl text-xs md:text-sm">Delete</button>
           </div>
         </div>
       ) : (
         <div>
-          <input ref={type === 'raw' ? rawRef : mixedRef} type="file" accept="audio/*" onChange={e => upload(type, e.target.files?.[0])} className="hidden" />
+          <input ref={type === 'raw' ? rawRef : mixedRef} type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*" onChange={e => upload(type, e.target.files?.[0])} className="hidden" />
           <div onClick={() => (type === 'raw' ? rawRef : mixedRef).current?.click()} className={`border-2 border-dashed ${accent ? 'border-[#8B5CF6]/30 bg-[#8B5CF6]/5' : 'border-white/10 hover:border-[#8B5CF6]/30'} rounded-xl p-6 md:p-8 text-center cursor-pointer`}>
             {uploading[type] ? <div className="w-6 h-6 md:w-8 md:h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto" /> : <><span className="text-3xl md:text-4xl block mb-2">📤</span><p className="text-gray-400 text-xs md:text-sm">Upload {type}</p></>}
           </div>
