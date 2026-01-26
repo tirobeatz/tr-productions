@@ -9,6 +9,7 @@ import {
   getAllAdmins, createAdmin, deactivateAdmin,
   reactivateAdmin, linkUserToAdmin, onAuthStateChange
 } from '../../lib/auth'
+import AboutContentManager from './AboutContentManager'
 
 export default function AdminPage() {
   const [isMobile, setIsMobile] = useState(true)
@@ -329,6 +330,7 @@ export default function AdminPage() {
     { id: 'mixdemo', label: 'Demo', icon: '🔊', count: null },
     { id: 'recentmixes', label: 'Portfolio', icon: '💿', count: null },
     { id: 'images', label: 'Images', icon: '🖼️', count: null },
+    { id: 'about', label: 'About', icon: '📝', count: null },
     { id: 'messages', label: 'Messages', icon: '💬', count: messages.filter(m => !m.is_read).length },
     ...(currentAdmin?.role === 'owner' ? [{ id: 'admins', label: 'Admins', icon: '👥', count: admins.filter(a => a.is_active).length }] : [])
   ]
@@ -402,6 +404,7 @@ export default function AdminPage() {
             {activeTab === 'mixdemo' && <MixDemoManager demos={mixDemos} onRefresh={fetchAllData} />}
             {activeTab === 'recentmixes' && <RecentMixesManager mixes={recentMixes} onRefresh={fetchAllData} isMobile={isMobile} />}
             {activeTab === 'images' && <SiteImagesManager images={siteImages} onRefresh={fetchAllData} />}
+            {activeTab === 'about' && <AboutContentManager onRefresh={fetchAllData} />}
             {activeTab === 'messages' && <MessagesManager messages={messages} onRefresh={fetchAllData} formatDate={formatDate} />}
             {activeTab === 'admins' && currentAdmin?.role === 'owner' && <AdminsManager admins={admins} currentAdmin={currentAdmin} onRefresh={fetchAllData} formatDate={formatDate} />}
           </>

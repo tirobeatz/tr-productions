@@ -8,6 +8,85 @@ import Footer from '../components/Footer'
 import Background from '../components/Background'
 import { supabase } from '../../lib/supabase'
 
+// Default content (fallback if no database content)
+const defaultContent = {
+  hero_tagline: 'The Story Behind The Sound',
+  hero_title: 'TR Productions',
+  hero_texts: ['Producer. Engineer. Artist.', 'Making beats that hit different.', 'From Trier to the world.', 'Your vision, my sound.'],
+  stats: [
+    { label: 'Beats Made', value: 500 },
+    { label: 'Artists Worked With', value: 120 },
+    { label: 'Years Experience', value: 5 },
+    { label: 'Projects Completed', value: 200 }
+  ],
+  timeline: [
+    { year: '2019', title: 'The Beginning', desc: 'Started making beats in my bedroom with just a laptop and FL Studio.', icon: '🌱', milestone: 'First beat ever made' },
+    { year: '2020', title: 'First Placement', desc: 'Landed my first placement with a local artist.', icon: '🎯', milestone: '1st official release' },
+    { year: '2021', title: 'Building the Studio', desc: 'Invested in proper equipment and acoustic treatment.', icon: '🏠', milestone: 'Home studio complete' },
+    { year: '2022', title: 'Going Online', desc: 'Started selling beats online and offering mixing services.', icon: '🌍', milestone: '100+ beats sold' },
+    { year: '2023', title: 'Full-Time Producer', desc: 'Took the leap and went full-time. No backup plan.', icon: '🚀', milestone: 'Full-time music' },
+    { year: '2024', title: 'TR Productions', desc: 'Launched the official brand. The full package.', icon: '👑', milestone: 'Brand launch' }
+  ],
+  skills: [
+    { name: 'Beat Production', level: 95, icon: '🎹' },
+    { name: 'Mixing', level: 88, icon: '🎚️' },
+    { name: 'Mastering', level: 85, icon: '💎' },
+    { name: 'Sound Design', level: 80, icon: '🔊' },
+    { name: 'Vocal Recording', level: 82, icon: '🎤' },
+    { name: 'Music Theory', level: 70, icon: '📚' }
+  ],
+  tools: [
+    { name: 'FL Studio', icon: '🍊', years: 5, primary: true },
+    { name: 'Pro Tools', icon: '🎛️', years: 2 },
+    { name: 'iZotope', icon: '🔮', years: 3 },
+    { name: 'Waves', icon: '🌊', years: 4 },
+    { name: 'Serum', icon: '💉', years: 4, primary: true },
+    { name: 'Kontakt', icon: '🎻', years: 3 }
+  ],
+  genres: [
+    { name: 'Trap', influence: 95, color: '#8B5CF6' },
+    { name: 'Drill', influence: 90, color: '#EF4444' },
+    { name: 'Hip-Hop', influence: 88, color: '#F59E0B' },
+    { name: 'R&B', influence: 75, color: '#EC4899' },
+    { name: 'Afrobeat', influence: 60, color: '#10B981' },
+    { name: 'Pop', influence: 50, color: '#3B82F6' }
+  ],
+  day_schedule: [
+    { time: '09:00', activity: 'Wake up, coffee, check emails', icon: '☕', type: 'morning' },
+    { time: '10:00', activity: 'Sound design & sample hunting', icon: '🔍', type: 'morning' },
+    { time: '12:00', activity: 'Beat making session', icon: '🎹', type: 'work' },
+    { time: '14:00', activity: 'Lunch break & social media', icon: '🍜', type: 'break' },
+    { time: '15:00', activity: 'Client mixing projects', icon: '🎚️', type: 'work' },
+    { time: '18:00', activity: 'Studio sessions (if booked)', icon: '🎤', type: 'work' },
+    { time: '20:00', activity: 'Dinner & chill', icon: '🍕', type: 'break' },
+    { time: '22:00', activity: 'Late night creative session', icon: '🌙', type: 'creative' },
+    { time: '01:00', activity: 'Sleep (sometimes...)', icon: '😴', type: 'end' }
+  ],
+  fun_facts: [
+    { front: 'Favorite DAW?', back: 'FL Studio forever 🍊', icon: '💻' },
+    { front: 'Coffee or Tea?', back: 'Coffee. Black. Always. ☕', icon: '🍵' },
+    { front: 'Night or Day?', back: 'Night owl - best beats after midnight 🦉', icon: '🌙' },
+    { front: 'First instrument?', back: 'Piano at age 8 🎹', icon: '🎸' },
+    { front: 'Dream collab?', back: 'Metro Boomin or Southside 🔥', icon: '🤝' },
+    { front: 'Guilty pleasure?', back: 'Lo-fi beats while cooking 🍳', icon: '🎧' },
+    { front: 'Studio snack?', back: 'Gummy bears. No debate. 🐻', icon: '🍕' },
+    { front: 'Beats made at 3AM?', back: 'Too many to count... 😅', icon: '⏰' }
+  ],
+  socials: [
+    { name: 'Instagram', icon: '📸', url: '#', color: 'from-purple-500 to-pink-500', handle: '@trproductions' },
+    { name: 'YouTube', icon: '🎬', url: '#', color: 'from-red-500 to-red-600', handle: 'TR Productions' },
+    { name: 'TikTok', icon: '🎵', url: '#', color: 'from-gray-800 to-black', handle: '@trproductions' },
+    { name: 'Twitter', icon: '🐦', url: '#', color: 'from-blue-400 to-blue-500', handle: '@tr_beats' },
+    { name: 'Spotify', icon: '🎧', url: '#', color: 'from-green-500 to-green-600', handle: 'TR Productions' },
+    { name: 'SoundCloud', icon: '☁️', url: '#', color: 'from-orange-500 to-orange-600', handle: 'trproductions' }
+  ],
+  cta_title: "Let's Create Together",
+  cta_subtitle: 'Got a project in mind? Need a beat? Want to book a session?',
+  cta_hint: "Psst... there's a secret code hidden on this page 🎮",
+  easter_egg_code: 'KONAMI10',
+  easter_egg_discount: '10% off your next beat!'
+}
+
 export default function AboutPage() {
   const [isMobile, setIsMobile] = useState(true)
   const [mounted, setMounted] = useState(false)
@@ -15,6 +94,7 @@ export default function AboutPage() {
   const [flippedCards, setFlippedCards] = useState([])
   const [easterEggFound, setEasterEggFound] = useState(false)
   const [siteImages, setSiteImages] = useState([])
+  const [content, setContent] = useState(defaultContent)
   const [konamiProgress, setKonamiProgress] = useState(0)
 
   const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
@@ -22,7 +102,19 @@ export default function AboutPage() {
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
     setMounted(true)
-    supabase.from('site_images').select('*').eq('is_active', true).then(({ data }) => setSiteImages(data || []))
+
+    // Fetch site images and about content
+    const fetchData = async () => {
+      const [imagesRes, contentRes] = await Promise.all([
+        supabase.from('site_images').select('*').eq('is_active', true),
+        supabase.from('about_content').select('*').single()
+      ])
+      setSiteImages(imagesRes.data || [])
+      if (contentRes.data) {
+        setContent({ ...defaultContent, ...contentRes.data })
+      }
+    }
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -42,113 +134,24 @@ export default function AboutPage() {
   }
   const toggleFlip = (i) => setFlippedCards(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i])
 
-  // Count up hook
-  const useCountUp = (end, duration = 2000) => {
-    const [count, setCount] = useState(0)
-    const [started, setStarted] = useState(false)
-    const ref = useRef(null)
-    useEffect(() => {
-      const obs = new IntersectionObserver(([e]) => {
-        if (e.isIntersecting && !started) {
-          setStarted(true)
-          let n = 0
-          const inc = end / (duration / 16)
-          const t = setInterval(() => { n += inc; if (n >= end) { setCount(end); clearInterval(t) } else setCount(Math.floor(n)) }, 16)
-        }
-      }, { threshold: 0.5 })
-      if (ref.current) obs.observe(ref.current)
-      return () => obs.disconnect()
-    }, [end, duration, started])
-    return [count, ref]
-  }
-
-  const [beatsCount, beatsRef] = useCountUp(500)
-  const [artistsCount, artistsRef] = useCountUp(120)
-  const [yearsCount, yearsRef] = useCountUp(5)
-  const [projectsCount, projectsRef] = useCountUp(200)
-
-  const timeline = [
-    { year: '2019', title: 'The Beginning', desc: 'Started making beats in my bedroom with just a laptop and FL Studio.', icon: '🌱', milestone: 'First beat ever made' },
-    { year: '2020', title: 'First Placement', desc: 'Landed my first placement with a local artist.', icon: '🎯', milestone: '1st official release' },
-    { year: '2021', title: 'Building the Studio', desc: 'Invested in proper equipment and acoustic treatment.', icon: '🏠', milestone: 'Home studio complete' },
-    { year: '2022', title: 'Going Online', desc: 'Started selling beats online and offering mixing services.', icon: '🌍', milestone: '100+ beats sold' },
-    { year: '2023', title: 'Full-Time Producer', desc: 'Took the leap and went full-time. No backup plan.', icon: '🚀', milestone: 'Full-time music' },
-    { year: '2024', title: 'TR Productions', desc: 'Launched the official brand. The full package.', icon: '👑', milestone: 'Brand launch' }
-  ]
-
-  const skills = [
-    { name: 'Beat Production', level: 95, icon: '🎹' },
-    { name: 'Mixing', level: 88, icon: '🎚️' },
-    { name: 'Mastering', level: 85, icon: '💎' },
-    { name: 'Sound Design', level: 80, icon: '🔊' },
-    { name: 'Vocal Recording', level: 82, icon: '🎤' },
-    { name: 'Music Theory', level: 70, icon: '📚' }
-  ]
-
-  const tools = [
-    { name: 'FL Studio', icon: '🍊', years: 5, primary: true },
-    { name: 'Pro Tools', icon: '🎛️', years: 2 },
-    { name: 'iZotope', icon: '🔮', years: 3 },
-    { name: 'Waves', icon: '🌊', years: 4 },
-    { name: 'Serum', icon: '💉', years: 4, primary: true },
-    { name: 'Kontakt', icon: '🎻', years: 3 }
-  ]
-
-  const genres = [
-    { name: 'Trap', influence: 95, color: '#8B5CF6' },
-    { name: 'Drill', influence: 90, color: '#EF4444' },
-    { name: 'Hip-Hop', influence: 88, color: '#F59E0B' },
-    { name: 'R&B', influence: 75, color: '#EC4899' },
-    { name: 'Afrobeat', influence: 60, color: '#10B981' },
-    { name: 'Pop', influence: 50, color: '#3B82F6' }
-  ]
-
-  const funFacts = [
-    { front: 'Favorite DAW?', back: 'FL Studio forever 🍊', icon: '💻' },
-    { front: 'Coffee or Tea?', back: 'Coffee. Black. Always. ☕', icon: '🍵' },
-    { front: 'Night or Day?', back: 'Night owl - best beats after midnight 🦉', icon: '🌙' },
-    { front: 'First instrument?', back: 'Piano at age 8 🎹', icon: '🎸' },
-    { front: 'Dream collab?', back: 'Metro Boomin or Southside 🔥', icon: '🤝' },
-    { front: 'Guilty pleasure?', back: 'Lo-fi beats while cooking 🍳', icon: '🎧' },
-    { front: 'Studio snack?', back: 'Gummy bears. No debate. 🐻', icon: '🍕' },
-    { front: 'Beats made at 3AM?', back: 'Too many to count... 😅', icon: '⏰' }
-  ]
-
-  const socials = [
-    { name: 'Instagram', icon: '📸', url: '#', color: 'from-purple-500 to-pink-500', handle: '@trproductions' },
-    { name: 'YouTube', icon: '🎬', url: '#', color: 'from-red-500 to-red-600', handle: 'TR Productions' },
-    { name: 'TikTok', icon: '🎵', url: '#', color: 'from-gray-800 to-black', handle: '@trproductions' },
-    { name: 'Twitter', icon: '🐦', url: '#', color: 'from-blue-400 to-blue-500', handle: '@tr_beats' },
-    { name: 'Spotify', icon: '🎧', url: '#', color: 'from-green-500 to-green-600', handle: 'TR Productions' },
-    { name: 'SoundCloud', icon: '☁️', url: '#', color: 'from-orange-500 to-orange-600', handle: 'trproductions' }
-  ]
-
-  const dayInLife = [
-    { time: '09:00', activity: 'Wake up, coffee, check emails', icon: '☕', type: 'morning' },
-    { time: '10:00', activity: 'Sound design & sample hunting', icon: '🔍', type: 'morning' },
-    { time: '12:00', activity: 'Beat making session', icon: '🎹', type: 'work' },
-    { time: '14:00', activity: 'Lunch break & social media', icon: '🍜', type: 'break' },
-    { time: '15:00', activity: 'Client mixing projects', icon: '🎚️', type: 'work' },
-    { time: '18:00', activity: 'Studio sessions (if booked)', icon: '🎤', type: 'work' },
-    { time: '20:00', activity: 'Dinner & chill', icon: '🍕', type: 'break' },
-    { time: '22:00', activity: 'Late night creative session', icon: '🌙', type: 'creative' },
-    { time: '01:00', activity: 'Sleep (sometimes...)', icon: '😴', type: 'end' }
-  ]
-
-  const stats = [
-    { count: beatsCount, ref: beatsRef, label: 'Beats Made' },
-    { count: artistsCount, ref: artistsRef, label: 'Artists Worked With' },
-    { count: yearsCount, ref: yearsRef, label: 'Years Experience' },
-    { count: projectsCount, ref: projectsRef, label: 'Projects Completed' }
-  ]
+  // Get content with fallback
+  const heroTexts = content.hero_texts || defaultContent.hero_texts
+  const stats = content.stats || defaultContent.stats
+  const timeline = content.timeline || defaultContent.timeline
+  const skills = content.skills || defaultContent.skills
+  const tools = content.tools || defaultContent.tools
+  const genres = content.genres || defaultContent.genres
+  const dayInLife = content.day_schedule || defaultContent.day_schedule
+  const funFacts = content.fun_facts || defaultContent.fun_facts
+  const socials = content.socials || defaultContent.socials
 
   // Simplified animation variants
   const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 
   return (
     <main className="min-h-screen bg-[#050505] text-white relative overflow-x-hidden">
-      
-<Background />
+
+      <Background />
 
       <Header />
 
@@ -160,8 +163,8 @@ export default function AboutPage() {
               <span className="text-7xl md:text-9xl block mb-6">🎉</span>
               <h2 className="text-2xl md:text-4xl font-bold mb-4">You Found It!</h2>
               <p className="text-gray-400 mb-2">Secret Konami Code Unlocked</p>
-              <p className="text-[#8B5CF6]">10% off your next beat!</p>
-              <p className="text-gray-500 text-sm mt-4">Code: KONAMI10</p>
+              <p className="text-[#8B5CF6]">{content.easter_egg_discount}</p>
+              <p className="text-gray-500 text-sm mt-4">Code: {content.easter_egg_code}</p>
               <p className="text-gray-600 text-xs mt-8">Tap anywhere to close</p>
             </motion.div>
           </motion.div>
@@ -173,16 +176,16 @@ export default function AboutPage() {
         <div className="text-center max-w-5xl mx-auto">
           <motion.div initial="hidden" animate={mounted ? "visible" : "hidden"} variants={{ visible: { transition: { staggerChildren: 0.2 } } }}>
             <motion.p variants={fadeUp} className="text-[#8B5CF6] font-medium mb-4 md:mb-6 tracking-[0.2em] md:tracking-[0.3em] uppercase text-xs md:text-sm">
-              The Story Behind The Sound
+              {content.hero_tagline}
             </motion.p>
-            
+
             <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl lg:text-9xl font-bold tracking-tight mb-6 md:mb-8">
               <span className="relative inline-block">TR</span>{' '}
               <span className="text-[#8B5CF6]">Productions</span>
             </motion.h1>
 
             <motion.div variants={fadeUp} className="text-lg md:text-2xl text-gray-400 mb-8 md:mb-12 h-8">
-              <TypewriterText texts={['Producer. Engineer. Artist.', 'Making beats that hit different.', 'From Trier to the world.', 'Your vision, my sound.']} />
+              <TypewriterText texts={heroTexts} />
             </motion.div>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
@@ -213,8 +216,8 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {stats.map((s, i) => (
-              <motion.div key={s.label} ref={s.ref} className="text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
-                <p className="text-4xl md:text-6xl font-bold text-[#8B5CF6] mb-2">{s.count}+</p>
+              <motion.div key={s.label} className="text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
+                <CountUpNumber end={s.value} />
                 <p className="text-gray-500 text-xs md:text-sm">{s.label}</p>
               </motion.div>
             ))}
@@ -440,13 +443,13 @@ export default function AboutPage() {
       <section className="relative py-16 md:py-20 px-4 md:px-6">
         <div className="max-w-4xl mx-auto">
           <motion.div className="bg-gradient-to-br from-[#8B5CF6]/20 to-transparent border border-[#8B5CF6]/20 rounded-2xl md:rounded-3xl p-6 md:p-12 text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">Let's Create Together</h2>
-            <p className="text-gray-400 mb-6 md:mb-8 max-w-xl mx-auto text-sm md:text-base">Got a project in mind? Need a beat? Want to book a session?</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">{content.cta_title}</h2>
+            <p className="text-gray-400 mb-6 md:mb-8 max-w-xl mx-auto text-sm md:text-base">{content.cta_subtitle}</p>
             <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
               <a href="/beats" className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-6 md:px-8 py-3 md:py-4 rounded-full font-semibold transition-all hover:scale-105">Browse Beats</a>
               <a href="/studio" className="border border-white/20 hover:border-white/40 hover:bg-white/5 px-6 md:px-8 py-3 md:py-4 rounded-full font-semibold transition">Book Studio</a>
             </div>
-            <p className="text-gray-600 text-xs mt-6 md:mt-8">Psst... there's a secret code hidden on this page 🎮</p>
+            <p className="text-gray-600 text-xs mt-6 md:mt-8">{content.cta_hint}</p>
           </motion.div>
         </div>
       </section>
@@ -462,6 +465,7 @@ function TypewriterText({ texts }) {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
+    if (!texts || texts.length === 0) return
     const t = texts[index]
     const timeout = setTimeout(() => {
       if (!deleting) {
@@ -476,4 +480,36 @@ function TypewriterText({ texts }) {
   }, [text, deleting, index, texts])
 
   return <span>{text}<span className="animate-pulse text-[#8B5CF6]">|</span></span>
+}
+
+function CountUpNumber({ end }) {
+  const [count, setCount] = useState(0)
+  const [started, setStarted] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !started) {
+        setStarted(true)
+        let n = 0
+        const duration = 2000
+        const inc = end / (duration / 16)
+        const t = setInterval(() => {
+          n += inc
+          if (n >= end) {
+            setCount(end)
+            clearInterval(t)
+          } else {
+            setCount(Math.floor(n))
+          }
+        }, 16)
+      }
+    }, { threshold: 0.5 })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [end, started])
+
+  return (
+    <p ref={ref} className="text-4xl md:text-6xl font-bold text-[#8B5CF6] mb-2">{count}+</p>
+  )
 }
