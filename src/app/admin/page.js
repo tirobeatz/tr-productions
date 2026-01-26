@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
-import { 
-  getUser, isAdmin, getAdminProfile, signIn, signOut, 
-  getAllAdmins, createAdmin, deactivateAdmin, 
-  reactivateAdmin, linkUserToAdmin, onAuthStateChange 
+import { compressImage } from '../../lib/imageUtils'
+import {
+  getUser, isAdmin, getAdminProfile, signIn, signOut,
+  getAllAdmins, createAdmin, deactivateAdmin,
+  reactivateAdmin, linkUserToAdmin, onAuthStateChange
 } from '../../lib/auth'
 
 export default function AdminPage() {
@@ -507,12 +508,15 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
 
   const uploadFile = async (file, bucket, setUploading, field) => {
     if (!file) return
-    const maxSize = bucket === 'beats' ? 50 : 5
-    if (file.size > maxSize * 1024 * 1024) { alert(`Max ${maxSize}MB`); return }
     setUploading(true)
     try {
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`
-      const { error } = await supabase.storage.from(bucket).upload(fileName, file)
+      // Compress images before upload
+      let uploadFile = file
+      if (file.type.startsWith('image/')) {
+        uploadFile = await compressImage(file, 1920, 0.85)
+      }
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
+      const { error } = await supabase.storage.from(bucket).upload(fileName, uploadFile)
       if (error) throw error
       const { data } = supabase.storage.from(bucket).getPublicUrl(fileName)
       setFormData(f => ({ ...f, [field]: data.publicUrl }))
@@ -1122,11 +1126,12 @@ function SiteImagesManager({ images, onRefresh }) {
 
   const upload = async (file) => {
     if (!file || !file.type.includes('image')) { alert('Select image'); return }
-    if (file.size > 10 * 1024 * 1024) { alert('Max 10MB'); return }
     setUploading(true)
     try {
-      const fileName = `site-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`
-      const { error } = await supabase.storage.from('images').upload(fileName, file)
+      // Compress image before upload (max 1920px, 85% quality)
+      const compressed = await compressImage(file, 1920, 0.85)
+      const fileName = `site-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
+      const { error } = await supabase.storage.from('images').upload(fileName, compressed)
       if (error) throw error
       const { data } = supabase.storage.from('images').getPublicUrl(fileName)
       setFormData(f => ({ ...f, image_url: data.publicUrl }))

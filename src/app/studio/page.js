@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import Image from 'next/image'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Background from '../components/Background'
@@ -161,13 +162,13 @@ export default function StudioPage() {
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Where Magic Happens</h2>
           </div>
           <div className={`grid md:grid-cols-3 gap-3 ${anim('gallery')}`}>
-            <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden">
-              {getImage('studio-main') ? <img src={getImage('studio-main')} alt="Studio" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /> : <span className="text-5xl group-hover:scale-110 transition-transform">🎙️</span>}
+            <div className="md:col-span-2 aspect-video bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden relative">
+              {getImage('studio-main') ? <Image src={getImage('studio-main')} alt="Studio" fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 100vw, 66vw" quality={60} /> : <span className="text-5xl group-hover:scale-110 transition-transform">🎙️</span>}
             </div>
             <div className="flex flex-row md:flex-col gap-3">
               {[{ loc: 'studio-setup', icon: '🎧' }, { loc: 'studio-vibe', icon: '🛋️' }].map(({ loc, icon }) => (
-                <div key={loc} className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden min-h-[100px]">
-                  {getImage(loc) ? <img src={getImage(loc)} alt={loc} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /> : <span className="text-3xl group-hover:scale-110 transition-transform">{icon}</span>}
+                <div key={loc} className="flex-1 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 group hover:border-[#8B5CF6]/30 transition overflow-hidden min-h-[100px] relative">
+                  {getImage(loc) ? <Image src={getImage(loc)} alt={loc} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 33vw" quality={60} /> : <span className="text-3xl group-hover:scale-110 transition-transform">{icon}</span>}
                 </div>
               ))}
             </div>
@@ -329,8 +330,8 @@ export default function StudioPage() {
                   ))}
                 </div>
               </div>
-              <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 overflow-hidden">
-                {getImage('studio-location') ? <img src={getImage('studio-location')} alt="Location" className="w-full h-full object-cover" loading="lazy" /> : <span className="text-4xl">🏠</span>}
+              <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-xl flex items-center justify-center border border-white/5 overflow-hidden relative">
+                {getImage('studio-location') ? <Image src={getImage('studio-location')} alt="Location" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" quality={60} /> : <span className="text-4xl">🏠</span>}
               </div>
             </div>
           </div>

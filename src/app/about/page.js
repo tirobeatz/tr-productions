@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Background from '../components/Background'
@@ -224,8 +225,8 @@ export default function AboutPage() {
           <div className="grid md:grid-cols-2 gap-4 md:gap-8">
             {[{ loc: 'about-profile', icon: '👨‍🎤', label: 'Profile Photo' }, { loc: 'about-studio', icon: '🎧', label: 'Working in Studio' }].map((item, i) => (
               <motion.div key={item.loc} initial={{ opacity: 0, x: i === 0 ? -20 : 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl md:rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden">
-                {getImage(item.loc) ? <img src={getImage(item.loc)} alt={item.label} className="w-full h-full object-cover" loading="lazy" /> : (
+                className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-2xl md:rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden relative">
+                {getImage(item.loc) ? <Image src={getImage(item.loc)} alt={item.label} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" quality={60} /> : (
                   <div className="text-center"><span className="text-6xl md:text-8xl block mb-4">{item.icon}</span><p className="text-gray-500 text-sm">{item.label}</p></div>
                 )}
               </motion.div>
