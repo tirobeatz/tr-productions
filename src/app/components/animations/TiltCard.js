@@ -1,20 +1,27 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { gsap } from 'gsap'
 
 export default function TiltCard({
   children,
   className = '',
-  tiltStrength = 15,
+  tiltStrength = 12,
   glareEnabled = true,
   scale = 1.02,
 }) {
   const cardRef = useRef(null)
   const glareRef = useRef(null)
-  const [isHovered, setIsHovered] = useState(false)
+  const [isMobile, setIsMobile] = useState(true)
 
-  const handleMouseMove = (e) => {
+  useEffect(() => {
+    // Disable tilt on mobile/touch devices for performance
+    setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window)
+  }, [])
+
+  const handleMouseMove = useCallback((e) => {
+    if (isMobile) return
+
     const card = cardRef.current
     if (!card) return
 
@@ -30,9 +37,10 @@ export default function TiltCard({
     gsap.to(card, {
       rotateX,
       rotateY,
-      transformPerspective: 1000,
-      duration: 0.3,
+      transformPerspective: 800,
+      duration: 0.2,
       ease: 'power2.out',
+      overwrite: 'auto',
     })
 
     // Move glare effect
@@ -40,56 +48,52 @@ export default function TiltCard({
       const glareX = (x / rect.width) * 100
       const glareY = (y / rect.height) * 100
 
-      gsap.to(glareRef.current, {
-        background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.15) 0%, transparent 60%)`,
-        opacity: 1,
-        duration: 0.3,
-      })
+      glareRef.current.style.background = `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.1) 0%, transparent 50%)`
+      glareRef.current.style.opacity = '1'
     }
-  }
+  }, [isMobile, tiltStrength, glareEnabled])
 
-  const handleMouseEnter = () => {
-    setIsHovered(true)
+  const handleMouseEnter = useCallback(() => {
+    if (isMobile) return
+
     gsap.to(cardRef.current, {
       scale,
-      duration: 0.3,
+      duration: 0.25,
       ease: 'power2.out',
     })
-  }
+  }, [isMobile, scale])
 
-  const handleMouseLeave = () => {
-    setIsHovered(false)
+  const handleMouseLeave = useCallback(() => {
+    if (isMobile) return
 
     gsap.to(cardRef.current, {
       rotateX: 0,
       rotateY: 0,
       scale: 1,
-      duration: 0.5,
-      ease: 'elastic.out(1, 0.5)',
+      duration: 0.4,
+      ease: 'power3.out',
+      overwrite: 'auto',
     })
 
     if (glareRef.current) {
-      gsap.to(glareRef.current, {
-        opacity: 0,
-        duration: 0.3,
-      })
+      glareRef.current.style.opacity = '0'
     }
-  }
+  }, [isMobile])
 
   return (
     <div
       ref={cardRef}
       className={`relative ${className}`}
-      style={{ transformStyle: 'preserve-3d' }}
+      style={{ transformStyle: isMobile ? 'flat' : 'preserve-3d', willChange: isMobile ? 'auto' : 'transform' }}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
-      {glareEnabled && (
+      {glareEnabled && !isMobile && (
         <div
           ref={glareRef}
-          className="absolute inset-0 pointer-events-none rounded-[inherit] opacity-0"
+          className="absolute inset-0 pointer-events-none rounded-[inherit] opacity-0 transition-opacity duration-200"
           style={{ transform: 'translateZ(1px)' }}
         />
       )}
@@ -101,11 +105,11 @@ export default function TiltCard({
 export function BeatTiltCard({ children, className = '' }) {
   return (
     <TiltCard
-      className={`group bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden
-        hover:border-[#8B5CF6]/30 transition-colors duration-500
-        hover:shadow-xl hover:shadow-[#8B5CF6]/10 ${className}`}
-      tiltStrength={10}
-      scale={1.03}
+      className={`group bg-white/[0.02] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden
+        hover:border-[#8B5CF6]/30 transition-colors duration-300
+        hover:shadow-lg hover:shadow-[#8B5CF6]/10 ${className}`}
+      tiltStrength={8}
+      scale={1.02}
     >
       {children}
     </TiltCard>
@@ -116,10 +120,10 @@ export function BeatTiltCard({ children, className = '' }) {
 export function ServiceTiltCard({ children, className = '' }) {
   return (
     <TiltCard
-      className={`bg-white/[0.02] border border-white/5 rounded-2xl p-8
-        hover:border-[#8B5CF6]/30 hover:bg-white/[0.04] transition-colors duration-500
-        hover:shadow-xl hover:shadow-[#8B5CF6]/5 ${className}`}
-      tiltStrength={8}
+      className={`group bg-white/[0.02] border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8
+        hover:border-[#8B5CF6]/30 hover:bg-white/[0.04] transition-colors duration-300
+        hover:shadow-lg hover:shadow-[#8B5CF6]/5 ${className}`}
+      tiltStrength={6}
       scale={1.02}
     >
       {children}

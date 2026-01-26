@@ -1,34 +1,34 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
 
 // Fade up reveal animation
-export function FadeUp({ children, className = '', delay = 0, duration = 1 }) {
+export function FadeUp({ children, className = '', delay = 0, duration = 0.8 }) {
   const ref = useRef(null)
 
   useEffect(() => {
-    gsap.fromTo(ref.current,
-      {
-        opacity: 0,
-        y: 60,
-      },
-      {
-        opacity: 1,
-        y: 0,
-        duration,
-        delay,
-        ease: 'power4.out',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
-        },
-      }
-    )
+    const ctx = gsap.context(() => {
+      gsap.fromTo(ref.current,
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1,
+          y: 0,
+          duration,
+          delay,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: ref.current,
+            start: 'top 90%',
+            toggleActions: 'play none none none',
+          },
+        }
+      )
+    })
+    return () => ctx.revert()
   }, [delay, duration])
 
   return (
@@ -43,24 +43,24 @@ export function ScaleUp({ children, className = '', delay = 0 }) {
   const ref = useRef(null)
 
   useEffect(() => {
-    gsap.fromTo(ref.current,
-      {
-        opacity: 0,
-        scale: 0.8,
-      },
-      {
-        opacity: 1,
-        scale: 1,
-        duration: 1,
-        delay,
-        ease: 'power4.out',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
-        },
-      }
-    )
+    const ctx = gsap.context(() => {
+      gsap.fromTo(ref.current,
+        { opacity: 0, scale: 0.9 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          delay,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: ref.current,
+            start: 'top 90%',
+            toggleActions: 'play none none none',
+          },
+        }
+      )
+    })
+    return () => ctx.revert()
   }, [delay])
 
   return (
@@ -70,8 +70,8 @@ export function ScaleUp({ children, className = '', delay = 0 }) {
   )
 }
 
-// Staggered children animation
-export function StaggerChildren({ children, className = '', stagger = 0.1, from = 'bottom' }) {
+// Staggered children animation - optimized
+export function StaggerChildren({ children, className = '', stagger = 0.08, from = 'bottom' }) {
   const containerRef = useRef(null)
 
   useEffect(() => {
@@ -79,11 +79,11 @@ export function StaggerChildren({ children, className = '', stagger = 0.1, from 
     if (!items?.length) return
 
     const fromVars = {
-      bottom: { opacity: 0, y: 60 },
-      top: { opacity: 0, y: -60 },
-      left: { opacity: 0, x: -60 },
-      right: { opacity: 0, x: 60 },
-      scale: { opacity: 0, scale: 0.8 },
+      bottom: { opacity: 0, y: 30 },
+      top: { opacity: 0, y: -30 },
+      left: { opacity: 0, x: -30 },
+      right: { opacity: 0, x: 30 },
+      scale: { opacity: 0, scale: 0.95 },
     }
 
     const toVars = {
@@ -94,20 +94,23 @@ export function StaggerChildren({ children, className = '', stagger = 0.1, from 
       scale: { opacity: 1, scale: 1 },
     }
 
-    gsap.fromTo(items,
-      fromVars[from] || fromVars.bottom,
-      {
-        ...toVars[from] || toVars.bottom,
-        duration: 0.8,
-        stagger,
-        ease: 'power4.out',
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top 80%',
-          toggleActions: 'play none none reverse',
-        },
-      }
-    )
+    const ctx = gsap.context(() => {
+      gsap.fromTo(items,
+        fromVars[from] || fromVars.bottom,
+        {
+          ...toVars[from] || toVars.bottom,
+          duration: 0.6,
+          stagger,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: 'top 85%',
+            toggleActions: 'play none none none',
+          },
+        }
+      )
+    })
+    return () => ctx.revert()
   }, [stagger, from])
 
   return (
@@ -117,25 +120,36 @@ export function StaggerChildren({ children, className = '', stagger = 0.1, from 
   )
 }
 
-// Parallax effect
-export function Parallax({ children, className = '', speed = 0.5 }) {
+// Parallax effect - optimized with will-change
+export function Parallax({ children, className = '', speed = 0.3 }) {
   const ref = useRef(null)
+  const [isMobile, setIsMobile] = useState(true)
 
   useEffect(() => {
-    gsap.to(ref.current, {
-      y: () => speed * 100,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: ref.current,
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: true,
-      },
+    // Disable parallax on mobile for performance
+    setIsMobile(window.innerWidth < 768)
+  }, [])
+
+  useEffect(() => {
+    if (isMobile) return
+
+    const ctx = gsap.context(() => {
+      gsap.to(ref.current, {
+        y: () => speed * 80,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: ref.current,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1, // Smoother scrubbing
+        },
+      })
     })
-  }, [speed])
+    return () => ctx.revert()
+  }, [speed, isMobile])
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={className} style={{ willChange: isMobile ? 'auto' : 'transform' }}>
       {children}
     </div>
   )
@@ -146,26 +160,26 @@ export function SlideIn({ children, className = '', direction = 'left', delay = 
   const ref = useRef(null)
 
   useEffect(() => {
-    const x = direction === 'left' ? -100 : 100
+    const x = direction === 'left' ? -40 : 40
 
-    gsap.fromTo(ref.current,
-      {
-        opacity: 0,
-        x,
-      },
-      {
-        opacity: 1,
-        x: 0,
-        duration: 1,
-        delay,
-        ease: 'power4.out',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
-        },
-      }
-    )
+    const ctx = gsap.context(() => {
+      gsap.fromTo(ref.current,
+        { opacity: 0, x },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.8,
+          delay,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: ref.current,
+            start: 'top 90%',
+            toggleActions: 'play none none none',
+          },
+        }
+      )
+    })
+    return () => ctx.revert()
   }, [direction, delay])
 
   return (
@@ -180,25 +194,28 @@ export function RotateIn({ children, className = '', delay = 0 }) {
   const ref = useRef(null)
 
   useEffect(() => {
-    gsap.fromTo(ref.current,
-      {
-        opacity: 0,
-        rotateY: 90,
-        transformPerspective: 1000,
-      },
-      {
-        opacity: 1,
-        rotateY: 0,
-        duration: 1.2,
-        delay,
-        ease: 'power4.out',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
+    const ctx = gsap.context(() => {
+      gsap.fromTo(ref.current,
+        {
+          opacity: 0,
+          rotateY: 45,
+          transformPerspective: 800,
         },
-      }
-    )
+        {
+          opacity: 1,
+          rotateY: 0,
+          duration: 0.8,
+          delay,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: ref.current,
+            start: 'top 90%',
+            toggleActions: 'play none none none',
+          },
+        }
+      )
+    })
+    return () => ctx.revert()
   }, [delay])
 
   return (
@@ -209,26 +226,29 @@ export function RotateIn({ children, className = '', delay = 0 }) {
 }
 
 // Counter animation
-export function CountUp({ end, duration = 2, className = '', suffix = '' }) {
+export function CountUp({ end, duration = 1.5, className = '', suffix = '' }) {
   const ref = useRef(null)
   const countRef = useRef({ value: 0 })
 
   useEffect(() => {
-    gsap.to(countRef.current, {
-      value: end,
-      duration,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: ref.current,
-        start: 'top 85%',
-        toggleActions: 'play none none reverse',
-      },
-      onUpdate: () => {
-        if (ref.current) {
-          ref.current.innerText = Math.round(countRef.current.value) + suffix
-        }
-      },
+    const ctx = gsap.context(() => {
+      gsap.to(countRef.current, {
+        value: end,
+        duration,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: ref.current,
+          start: 'top 90%',
+          toggleActions: 'play none none none',
+        },
+        onUpdate: () => {
+          if (ref.current) {
+            ref.current.innerText = Math.round(countRef.current.value) + suffix
+          }
+        },
+      })
     })
+    return () => ctx.revert()
   }, [end, duration, suffix])
 
   return <span ref={ref} className={className}>0{suffix}</span>

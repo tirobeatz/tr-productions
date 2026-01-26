@@ -2,6 +2,7 @@ import './globals.css'
 import SmoothScroll from './components/SmoothScroll'
 import CustomCursor from './components/animations/Cursor'
 import PageTransitionProvider from './components/PageTransitionProvider'
+import { PageLoaderProvider } from './components/PageLoader'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trproductions.de'
@@ -96,12 +97,14 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="https://supabase.co" />
       </head>
       <body>
-        <SmoothScroll>
-          <PageTransitionProvider>
-            {children}
-          </PageTransitionProvider>
-        </SmoothScroll>
-        <CustomCursor />
+        <PageLoaderProvider>
+          <SmoothScroll>
+            <PageTransitionProvider>
+              {children}
+            </PageTransitionProvider>
+          </SmoothScroll>
+          <CustomCursor />
+        </PageLoaderProvider>
         <SpeedInsights />
       </body>
     </html>
