@@ -13,7 +13,7 @@ import AboutContentManager from './AboutContentManager'
 
 export default function AdminPage() {
   const [isMobile, setIsMobile] = useState(true)
-  const [authState, setAuthState] = useState('login') // Start with login, not loading
+  const [authState, setAuthState] = useState('loading') // Start with loading to check session
   const [currentAdmin, setCurrentAdmin] = useState(null)
   const [activeTab, setActiveTab] = useState('beats')
   const [loading, setLoading] = useState(false)
@@ -35,6 +35,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
+
+    // Check session immediately on mount
     checkAuth()
 
     const { data: { subscription } } = onAuthStateChange(async (event) => {
@@ -47,38 +49,48 @@ export default function AdminPage() {
 
   const checkAuth = async () => {
     try {
-      const user = await getUser()
-      if (!user) { setAuthState('login'); return }
+      // Quick timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 5000)
+      )
 
-      // Try to get admin profile directly (simpler check)
-      const { data: profile, error } = await supabase
-        .from('admins').select('*').eq('user_id', user.id).eq('is_active', true).single()
+      const authPromise = (async () => {
+        const user = await getUser()
+        if (!user) return { status: 'login' }
 
-      if (error || !profile) {
-        // Maybe user_id not linked yet, try to link
-        const { data: linkedProfile } = await supabase
-          .from('admins').update({ user_id: user.id }).eq('email', user.email).is('user_id', null).select().single()
+        // Try to get admin profile directly (simpler check)
+        const { data: profile, error } = await supabase
+          .from('admins').select('*').eq('user_id', user.id).eq('is_active', true).single()
 
-        if (linkedProfile) {
-          setCurrentAdmin(linkedProfile)
-          setAuthState('authenticated')
-          return
+        if (error || !profile) {
+          // Maybe user_id not linked yet, try to link by email
+          const { data: linkedProfile } = await supabase
+            .from('admins').update({ user_id: user.id }).eq('email', user.email).is('user_id', null).select().single()
+
+          if (linkedProfile) {
+            return { status: 'authenticated', profile: linkedProfile }
+          }
+
+          // No admin access
+          await signOut()
+          return { status: 'login', error: 'You do not have admin access.' }
         }
 
-        // No admin access
-        setAuthError('You do not have admin access.')
-        await signOut()
-        setAuthState('login')
-        return
-      }
+        // Update last login (fire and forget)
+        supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', profile.id)
 
-      setCurrentAdmin(profile)
-      setAuthState('authenticated')
+        return { status: 'authenticated', profile }
+      })()
 
-      // Update last login (don't await - fire and forget)
-      supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', profile.id)
+      const result = await Promise.race([authPromise, timeoutPromise])
+
+      if (result.error) setAuthError(result.error)
+      if (result.profile) setCurrentAdmin(result.profile)
+      setAuthState(result.status)
+
     } catch (err) {
       console.error('Auth check error:', err)
+      // On timeout or error, show login form (don't get stuck)
       setAuthState('login')
     }
   }
@@ -200,7 +212,18 @@ export default function AdminPage() {
     setAuthLoading(false)
   }
 
-  // Loading
+  // Loading state - checking session
+  if (authState === 'loading') {
+    return (
+      <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Checking session...</p>
+        </div>
+      </main>
+    )
+  }
+
   // Login/Signup/Forgot Password
   if (authState === 'login' || authState === 'signup' || authState === 'forgot' || authState === 'reset-password') {
     return (
