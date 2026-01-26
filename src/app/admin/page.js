@@ -10,6 +10,7 @@ import {
   reactivateAdmin, linkUserToAdmin, onAuthStateChange
 } from '../../lib/auth'
 import AboutContentManager from './AboutContentManager'
+import ReleasesManager from './components/ReleasesManager'
 
 export default function AdminPage() {
   const [isMobile, setIsMobile] = useState(true)
@@ -32,6 +33,7 @@ export default function AdminPage() {
   const [recentMixes, setRecentMixes] = useState([])
   const [siteImages, setSiteImages] = useState([])
   const [admins, setAdmins] = useState([])
+  const [releases, setReleases] = useState([])
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
@@ -147,7 +149,7 @@ export default function AdminPage() {
   const fetchAllData = async () => {
     setLoading(true)
     try {
-      const [b, bk, mx, msg, av, md, rm, si, ad] = await Promise.all([
+      const [b, bk, mx, msg, av, md, rm, si, ad, rel] = await Promise.all([
         supabase.from('beats').select('*').order('created_at', { ascending: false }),
         supabase.from('studio_bookings').select('*').order('created_at', { ascending: false }),
         supabase.from('mix_requests').select('*').order('created_at', { ascending: false }),
@@ -156,11 +158,13 @@ export default function AdminPage() {
         supabase.from('mix_demos').select('*').order('created_at', { ascending: false }),
         supabase.from('recent_mixes').select('*').order('created_at', { ascending: false }),
         supabase.from('site_images').select('*').order('created_at', { ascending: false }),
-        getAllAdmins()
+        getAllAdmins(),
+        supabase.from('releases').select('*').order('display_order', { ascending: true })
       ])
       setBeats(b.data || []); setBookings(bk.data || []); setMixRequests(mx.data || [])
       setMessages(msg.data || []); setAvailability(av.data || []); setMixDemos(md.data || [])
       setRecentMixes(rm.data || []); setSiteImages(si.data || []); setAdmins(ad.admins || [])
+      setReleases(rel.data || [])
     } catch (err) {
       console.error('Fetch data error:', err)
     }
@@ -341,6 +345,7 @@ export default function AdminPage() {
   // Dashboard
   const tabs = [
     { id: 'beats', label: 'Beats', icon: '🎵', count: beats.length },
+    { id: 'releases', label: 'Releases', icon: '💽', count: releases.length },
     { id: 'availability', label: 'Calendar', icon: '📅', count: null },
     { id: 'bookings', label: 'Bookings', icon: '🎤', count: bookings.filter(b => b.status === 'pending').length },
     { id: 'mixing', label: 'Mix', icon: '🎚️', count: mixRequests.filter(m => m.status === 'pending').length },
@@ -415,6 +420,7 @@ export default function AdminPage() {
         {!loading && (
           <>
             {activeTab === 'beats' && <BeatsManager beats={beats} onRefresh={fetchAllData} formatPrice={formatPrice} isMobile={isMobile} />}
+            {activeTab === 'releases' && <ReleasesManager releases={releases} onRefresh={fetchAllData} isMobile={isMobile} />}
             {activeTab === 'availability' && <AvailabilityManager availability={availability} bookings={bookings} onRefresh={fetchAllData} isMobile={isMobile} />}
             {activeTab === 'bookings' && <BookingsManager bookings={bookings} onRefresh={fetchAllData} formatPrice={formatPrice} formatDate={formatDate} />}
             {activeTab === 'mixing' && <MixRequestsManager requests={mixRequests} onRefresh={fetchAllData} formatPrice={formatPrice} formatDate={formatDate} />}

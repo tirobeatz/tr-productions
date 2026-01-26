@@ -27,6 +27,7 @@ export default function MixingPage() {
 
   const [mixDemo, setMixDemo] = useState(null)
   const [recentMixes, setRecentMixes] = useState([])
+  const [releases, setReleases] = useState([])
   const [playingMixId, setPlayingMixId] = useState(null)
 
   const audioRef = useRef(null)
@@ -93,6 +94,7 @@ export default function MixingPage() {
     setMounted(true)
     fetchMixDemo()
     fetchRecentMixes()
+    fetchReleases()
 
     const handleResize = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handleResize, { passive: true })
@@ -107,6 +109,11 @@ export default function MixingPage() {
   const fetchRecentMixes = async () => {
     const { data } = await supabase.from('recent_mixes').select('*').eq('is_visible', true).order('created_at', { ascending: false }).limit(8)
     setRecentMixes(data || [])
+  }
+
+  const fetchReleases = async () => {
+    const { data } = await supabase.from('releases').select('*').eq('is_visible', true).order('display_order', { ascending: true }).limit(12)
+    setReleases(data || [])
   }
 
   useEffect(() => {
@@ -878,6 +885,103 @@ export default function MixingPage() {
                   <p className="text-gray-500 text-xs md:text-sm">{m.artist} - {m.genre}</p>
                 </motion.div>
               ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* My Releases / Productions - Spotify Integration */}
+      {releases.length > 0 && (
+        <section className="relative py-16 md:py-24 px-4 md:px-6">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              className="text-center mb-10 md:mb-16"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+            >
+              <p className="text-[#1DB954] font-medium mb-3 md:mb-4 tracking-[0.3em] uppercase text-xs">Productions</p>
+              <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-3 md:mb-4">My Releases</h2>
+              <p className="text-gray-500 max-w-lg mx-auto text-sm md:text-base">Tracks I've produced and mixed. Listen on Spotify.</p>
+            </motion.div>
+
+            <motion.div
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+            >
+              {releases.map((release) => (
+                <motion.a
+                  key={release.id}
+                  href={release.spotify_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block"
+                  variants={scaleIn}
+                  whileHover={{ y: -8 }}
+                >
+                  {/* Cover */}
+                  <div className="aspect-square relative rounded-xl overflow-hidden mb-3 bg-[#1DB954]/10">
+                    {release.cover_image ? (
+                      <img
+                        src={release.cover_image}
+                        alt={release.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-5xl">🎵</div>
+                    )}
+
+                    {/* Spotify overlay on hover */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <motion.div
+                        className="w-14 h-14 bg-[#1DB954] rounded-full flex items-center justify-center"
+                        whileHover={{ scale: 1.1 }}
+                      >
+                        <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                        </svg>
+                      </motion.div>
+                    </div>
+
+                    {/* Featured badge */}
+                    {release.is_featured && (
+                      <div className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+                        ★ Featured
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <h3 className="font-semibold text-sm md:text-base truncate group-hover:text-[#1DB954] transition-colors">{release.title}</h3>
+                  <p className="text-gray-500 text-xs md:text-sm truncate">{release.artist}</p>
+                </motion.a>
+              ))}
+            </motion.div>
+
+            {/* Spotify CTA */}
+            <motion.div
+              className="text-center mt-10"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+            >
+              <a
+                href="https://open.spotify.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-[#1DB954] hover:text-[#1ed760] transition text-sm font-medium"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                </svg>
+                More on Spotify →
+              </a>
             </motion.div>
           </div>
         </section>

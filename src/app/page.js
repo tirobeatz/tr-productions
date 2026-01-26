@@ -28,6 +28,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(true)
   const [featuredBeat, setFeaturedBeat] = useState(null)
   const [latestBeats, setLatestBeats] = useState([])
+  const [featuredReleases, setFeaturedReleases] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [siteImages, setSiteImages] = useState([])
@@ -153,6 +154,17 @@ export default function Home() {
       .limit(4)
 
     setLatestBeats(latest || [])
+
+    // Fetch featured releases
+    const { data: releases } = await supabase
+      .from('releases')
+      .select('*')
+      .eq('is_visible', true)
+      .eq('is_featured', true)
+      .order('display_order', { ascending: true })
+      .limit(6)
+
+    setFeaturedReleases(releases || [])
     setLoading(false)
   }
 
@@ -626,6 +638,67 @@ export default function Home() {
           </div>
         </FadeUp>
       </section>
+
+      {/* Featured Releases Section */}
+      {featuredReleases.length > 0 && (
+        <section className="relative py-16 sm:py-20 md:py-28 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto">
+            <FadeUp className="text-center mb-10 md:mb-16">
+              <p className="text-[#1DB954] font-medium mb-3 sm:mb-4 tracking-[0.15em] sm:tracking-[0.2em] uppercase text-[10px] sm:text-xs">Productions</p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Featured Releases</h2>
+              <p className="text-gray-500 text-sm md:text-base mt-3 max-w-lg mx-auto">Tracks I've produced. Listen on Spotify.</p>
+            </FadeUp>
+
+            <StaggerChildren className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 md:gap-5" stagger={0.08}>
+              {featuredReleases.map((release) => (
+                <a
+                  key={release.id}
+                  href={release.spotify_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block"
+                >
+                  {/* Cover */}
+                  <div className="aspect-square relative rounded-xl overflow-hidden mb-3 bg-[#1DB954]/10 border border-white/5 group-hover:border-[#1DB954]/50 transition-all">
+                    {release.cover_image ? (
+                      <img
+                        src={release.cover_image}
+                        alt={release.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-4xl">🎵</div>
+                    )}
+
+                    {/* Spotify overlay on hover */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <h3 className="font-semibold text-sm truncate group-hover:text-[#1DB954] transition-colors">{release.title}</h3>
+                  <p className="text-gray-500 text-xs truncate">{release.artist}</p>
+                </a>
+              ))}
+            </StaggerChildren>
+
+            <FadeUp className="text-center mt-10">
+              <a
+                href="/mixing"
+                className="inline-flex items-center gap-2 text-[#1DB954] hover:text-[#1ed760] transition text-sm font-medium"
+              >
+                View All Productions →
+              </a>
+            </FadeUp>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </main>
