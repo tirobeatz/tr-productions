@@ -945,16 +945,25 @@ function MixDemoManager({ demos, onRefresh }) {
   const demo = demos.find(d => d.is_active) || demos[0]
 
   const upload = async (type, file) => {
-    if (!file || !demo) return
-    if (!file.type.includes('audio')) { alert('Select audio'); return }
+    if (!file) return
+    if (!file.type.includes('audio')) { alert('Select audio file'); return }
     if (file.size > 50 * 1024 * 1024) { alert('Max 50MB'); return }
     setUploading(u => ({ ...u, [type]: true }))
     try {
       const fileName = `mix-demo-${type}-${Date.now()}.${file.name.split('.').pop()}`
-      const { error } = await supabase.storage.from('beats').upload(fileName, file)
-      if (error) throw error
+      const { error: uploadError } = await supabase.storage.from('beats').upload(fileName, file)
+      if (uploadError) throw uploadError
       const { data } = supabase.storage.from('beats').getPublicUrl(fileName)
-      await supabase.from('mix_demos').update({ [type === 'raw' ? 'raw_audio_url' : 'mixed_audio_url']: data.publicUrl }).eq('id', demo.id)
+
+      // If no demo exists, create one first
+      let demoId = demo?.id
+      if (!demoId) {
+        const { data: newDemo, error: createError } = await supabase.from('mix_demos').insert([{ is_active: true }]).select().single()
+        if (createError) throw createError
+        demoId = newDemo.id
+      }
+
+      await supabase.from('mix_demos').update({ [type === 'raw' ? 'raw_audio_url' : 'mixed_audio_url']: data.publicUrl }).eq('id', demoId)
       onRefresh()
     } catch (e) { alert('Error: ' + e.message) }
     setUploading(u => ({ ...u, [type]: false }))
