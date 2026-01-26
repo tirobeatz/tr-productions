@@ -564,13 +564,15 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
     if (!file) return
     setUploading(true)
     try {
-      // Compress images before upload
-      let uploadFile = file
+      // Compress images before upload, keep audio files as-is
+      let fileToUpload = file
+      let ext = file.name.split('.').pop()
       if (file.type.startsWith('image/')) {
-        uploadFile = await compressImage(file, 1920, 0.85)
+        fileToUpload = await compressImage(file, 1920, 0.85)
+        ext = 'jpg'
       }
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
-      const { error } = await supabase.storage.from(bucket).upload(fileName, uploadFile)
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`
+      const { error } = await supabase.storage.from(bucket).upload(fileName, fileToUpload)
       if (error) throw error
       const { data } = supabase.storage.from(bucket).getPublicUrl(fileName)
       setFormData(f => ({ ...f, [field]: data.publicUrl }))
