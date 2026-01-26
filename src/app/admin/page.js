@@ -41,13 +41,21 @@ export default function AdminPage() {
     // Check session immediately on mount
     checkAuth()
 
-    const { data: { subscription } } = onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_IN') await checkAuth()
-      else if (event === 'SIGNED_OUT') { setAuthState('login'); setCurrentAdmin(null) }
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event, 'Session:', !!session)
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Only check auth if we don't already have a valid session
+        if (authState !== 'authenticated') {
+          await checkAuth()
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setAuthState('login')
+        setCurrentAdmin(null)
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [authState])
 
   const checkAuth = async () => {
     try {
@@ -105,15 +113,15 @@ export default function AdminPage() {
     setAuthLoading(true)
 
     try {
-      const { error } = await signIn(authForm.email, authForm.password)
+      const { error, user } = await signIn(authForm.email, authForm.password)
       if (error) { setAuthError(error); setAuthLoading(false); return }
 
-      // Skip admin check - just authenticate directly
-      // The onAuthStateChange will handle the rest
-      setAuthState('authenticated')
-      setCurrentAdmin({ email: authForm.email })
+      // After successful sign in, check admin status
+      // The onAuthStateChange will fire, but we also do an immediate check
+      await checkAuth()
     } catch (err) {
       setAuthError('Login failed. Please try again.')
+      setAuthLoading(false)
     }
     setAuthLoading(false)
   }
@@ -182,6 +190,26 @@ export default function AdminPage() {
       setAuthState('reset-password')
     }
   }, [])
+
+  // Keep session alive by refreshing periodically when authenticated
+  useEffect(() => {
+    if (authState !== 'authenticated') return
+
+    const refreshSession = async () => {
+      const { data, error } = await supabase.auth.refreshSession()
+      if (error) {
+        console.error('Session refresh failed:', error)
+        // If refresh fails, user needs to re-login
+        setAuthState('login')
+        setCurrentAdmin(null)
+      }
+    }
+
+    // Refresh session every 10 minutes to keep it alive
+    const interval = setInterval(refreshSession, 10 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [authState])
 
   // Handle forgot password
   const handleForgotPassword = async (e) => {
