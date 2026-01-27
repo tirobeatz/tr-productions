@@ -129,25 +129,47 @@ export async function GET(request) {
       return NextResponse.json({ error: 'File not available' }, { status: 404 })
     }
 
-    // For Supabase Storage, create a signed URL for secure download
-    // If the URL is already a Supabase Storage URL, create a signed URL
+    // Determine filename and content type
+    const fileExtensions = { mp3: 'mp3', wav: 'wav', stems: 'zip' }
+    const contentTypes = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      stems: 'application/zip'
+    }
+    const ext = fileExtensions[fileType]
+    const contentType = contentTypes[fileType]
+    const sanitizedTitle = beat.title.replace(/[^a-zA-Z0-9-_]/g, '_')
+    const filename = `${sanitizedTitle}.${ext}`
+
+    // Fetch the file from Supabase Storage
+    let fileData
     if (fileUrl.includes('supabase')) {
-      // Extract the path from the URL
-      const urlObj = new URL(fileUrl)
       const pathMatch = fileUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/)
 
       if (pathMatch) {
         const bucket = pathMatch[1]
         const path = pathMatch[2]
 
-        const { data: signedUrl, error: signError } = await supabaseAdmin.storage
+        const { data, error: downloadError } = await supabaseAdmin.storage
           .from(bucket)
-          .createSignedUrl(path, 3600) // 1 hour expiry
+          .download(path)
 
-        if (!signError && signedUrl) {
-          fileUrl = signedUrl.signedUrl
+        if (downloadError) {
+          console.error('Storage download error:', downloadError)
+          return NextResponse.json({ error: 'File download failed' }, { status: 500 })
         }
+
+        fileData = data
       }
+    }
+
+    if (!fileData) {
+      // Fallback: fetch from URL directly
+      const response = await fetch(fileUrl)
+      if (!response.ok) {
+        return NextResponse.json({ error: 'File not available' }, { status: 404 })
+      }
+      fileData = await response.blob()
     }
 
     // Increment download count
@@ -159,8 +181,15 @@ export async function GET(request) {
       })
       .eq('order_id', orderId)
 
-    // Redirect to file download
-    return NextResponse.redirect(fileUrl)
+    // Return file with download headers
+    const arrayBuffer = await fileData.arrayBuffer()
+    return new NextResponse(arrayBuffer, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': arrayBuffer.byteLength.toString()
+      }
+    })
 
   } catch (error) {
     console.error('Download error:', error)
