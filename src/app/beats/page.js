@@ -29,7 +29,10 @@ export default function BeatsPage() {
   const [volume, setVolume] = useState(1)
   const [notepadBeat, setNotepadBeat] = useState(null)
   const [lyrics, setLyrics] = useState({})
-  
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutEmail, setCheckoutEmail] = useState('')
+  const [emailError, setEmailError] = useState('')
+
   const audioRef = useRef(null)
   const progressRef = useRef(null)
 
@@ -55,7 +58,8 @@ export default function BeatsPage() {
 
   const fetchBeats = async () => {
     setLoading(true)
-    const { data } = await supabase.from('beats').select('*').eq('is_sold', false).order('created_at', { ascending: false })
+    // Fetch all beats, including sold ones (to show as "Sold")
+    const { data } = await supabase.from('beats').select('*').order('created_at', { ascending: false })
     setBeats(data || [])
     setLoading(false)
   }
@@ -129,8 +133,19 @@ export default function BeatsPage() {
     } catch (err) { console.error('Failed to copy:', err) }
   }
 
-  const handleBuyClick = (beat) => { setSelectedBeat(beat); setSelectedLicense(null) }
-  const handleCloseModal = () => { setSelectedBeat(null); setSelectedLicense(null) }
+  const handleBuyClick = (beat) => {
+    if (beat.is_sold) return // Don't allow buying sold beats
+    setSelectedBeat(beat)
+    setSelectedLicense(null)
+    setCheckoutEmail('')
+    setEmailError('')
+  }
+  const handleCloseModal = () => {
+    setSelectedBeat(null)
+    setSelectedLicense(null)
+    setCheckoutEmail('')
+    setEmailError('')
+  }
 
   const openNotepad = (beat) => {
     setNotepadBeat(beat)
@@ -149,10 +164,51 @@ export default function BeatsPage() {
     URL.revokeObjectURL(url)
   }
 
-  const handleCheckout = () => {
-    if (selectedBeat && selectedLicense) {
-      alert(`Proceeding to checkout:\n${selectedBeat.title} - ${selectedLicense.name} (${formatPrice(selectedBeat[selectedLicense.priceKey])})`)
-      handleCloseModal()
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return re.test(email)
+  }
+
+  const handleCheckout = async () => {
+    if (!selectedBeat || !selectedLicense) return
+
+    // Validate email
+    if (!checkoutEmail.trim()) {
+      setEmailError('Please enter your email address')
+      return
+    }
+    if (!validateEmail(checkoutEmail)) {
+      setEmailError('Please enter a valid email address')
+      return
+    }
+
+    setEmailError('')
+    setCheckoutLoading(true)
+
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          beatId: selectedBeat.id,
+          licenseType: selectedLicense.id,
+          customerEmail: checkoutEmail
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.url
+    } catch (error) {
+      console.error('Checkout error:', error)
+      setEmailError(error.message || 'Something went wrong. Please try again.')
+    } finally {
+      setCheckoutLoading(false)
     }
   }
 
@@ -232,8 +288,9 @@ export default function BeatsPage() {
                         <div className="w-full h-full flex items-center justify-center"><span className="text-3xl md:text-5xl opacity-30">🎵</span></div>
                       )}
                       
-                      {!beat.audio_url && <div className="absolute top-2 left-2 bg-yellow-500/20 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded-full">No Audio</div>}
-                      {beat.is_featured && <div className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[10px] px-1.5 py-0.5 rounded-full">Featured</div>}
+                      {beat.is_sold && <div className="absolute top-2 left-2 bg-red-500/90 text-white text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide z-20">SOLD</div>}
+                      {!beat.is_sold && !beat.audio_url && <div className="absolute top-2 left-2 bg-yellow-500/20 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded-full">No Audio</div>}
+                      {!beat.is_sold && beat.is_featured && <div className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[10px] px-1.5 py-0.5 rounded-full">Featured</div>}
                       
                       {/* Desktop Actions */}
                       <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden md:flex">
@@ -283,7 +340,9 @@ export default function BeatsPage() {
                       )}
                       
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm md:text-base">{formatPrice(beat.price_mp3)}</span>
+                        <span className={`font-bold text-sm md:text-base ${beat.is_sold ? 'text-gray-500 line-through' : ''}`}>
+                          {formatPrice(beat.price_mp3)}
+                        </span>
                         <div className="flex items-center gap-1.5">
                           {/* Mobile Actions */}
                           <button onClick={(e) => { e.stopPropagation(); toggleFavorite(beat.id) }}
@@ -294,10 +353,16 @@ export default function BeatsPage() {
                             className="w-7 h-7 md:hidden rounded-full bg-white/5 text-gray-400 flex items-center justify-center">
                             <span className="text-xs">✎</span>
                           </button>
-                          <button onClick={() => handleBuyClick(beat)}
-                            className="bg-white text-black px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-gray-200 transition">
-                            Buy
-                          </button>
+                          {beat.is_sold ? (
+                            <span className="bg-gray-600 text-gray-300 px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium cursor-not-allowed">
+                              Sold
+                            </span>
+                          ) : (
+                            <button onClick={() => handleBuyClick(beat)}
+                              className="bg-white text-black px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-gray-200 transition">
+                              Buy
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -380,29 +445,97 @@ export default function BeatsPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-5 md:mb-8">
                 {licenses.map(lic => {
                   const price = selectedBeat[lic.priceKey] || 29.99
+                  const isExclusiveSold = lic.id === 'exclusive' && selectedBeat.is_sold
+                  const isDisabled = isExclusiveSold
+
                   return (
-                    <div key={lic.id} onClick={() => setSelectedLicense(lic)}
-                      className={`relative p-3 md:p-5 rounded-xl md:rounded-2xl border cursor-pointer transition-all ${selectedLicense?.id === lic.id ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'border-white/10 bg-white/[0.02] hover:border-white/20'} ${lic.highlight ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}>
-                      {lic.highlight && <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Best Value</span>}
+                    <div
+                      key={lic.id}
+                      onClick={() => !isDisabled && setSelectedLicense(lic)}
+                      className={`relative p-3 md:p-5 rounded-xl md:rounded-2xl border transition-all ${
+                        isDisabled
+                          ? 'border-white/5 bg-white/[0.01] cursor-not-allowed opacity-50'
+                          : selectedLicense?.id === lic.id
+                          ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 cursor-pointer'
+                          : 'border-white/10 bg-white/[0.02] hover:border-white/20 cursor-pointer'
+                      } ${lic.highlight && !isDisabled ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}
+                    >
+                      {isExclusiveSold ? (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Sold Out</span>
+                      ) : lic.highlight ? (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Best Value</span>
+                      ) : null}
                       <h4 className="font-semibold text-xs md:text-base mb-0.5 md:mb-1">{lic.name}</h4>
-                      <p className="text-base md:text-2xl font-bold mb-2 md:mb-4">{formatPrice(price)}</p>
+                      <p className={`text-base md:text-2xl font-bold mb-2 md:mb-4 ${isDisabled ? 'line-through text-gray-500' : ''}`}>
+                        {formatPrice(price)}
+                      </p>
                       <ul className="space-y-1 md:space-y-2 hidden md:block">
-                        {lic.features.map((f, i) => <li key={i} className="text-xs text-gray-400 flex items-start gap-2"><span className="text-[#8B5CF6]">✓</span>{f}</li>)}
+                        {lic.features.map((f, i) => (
+                          <li key={i} className={`text-xs flex items-start gap-2 ${isDisabled ? 'text-gray-600' : 'text-gray-400'}`}>
+                            <span className={isDisabled ? 'text-gray-600' : 'text-[#8B5CF6]'}>✓</span>
+                            {f}
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   )
                 })}
               </div>
 
-              {/* Checkout */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 pt-4 md:pt-6 border-t border-white/10">
-                <div>
-                  {selectedLicense && <p className="text-gray-400 text-sm">Total: <span className="text-white font-bold text-lg md:text-xl">{formatPrice(selectedBeat[selectedLicense.priceKey])}</span></p>}
+              {/* Email Input & Checkout */}
+              <div className="pt-4 md:pt-6 border-t border-white/10">
+                {selectedLicense && (
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-400 mb-2">Email for delivery</label>
+                    <input
+                      type="email"
+                      value={checkoutEmail}
+                      onChange={(e) => { setCheckoutEmail(e.target.value); setEmailError('') }}
+                      placeholder="your@email.com"
+                      className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none transition ${
+                        emailError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-[#8B5CF6]/50'
+                      }`}
+                    />
+                    {emailError && <p className="text-red-400 text-xs mt-2">{emailError}</p>}
+                    <p className="text-gray-600 text-xs mt-2">Download link and license will be sent to this email</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
+                  <div>
+                    {selectedLicense && <p className="text-gray-400 text-sm">Total: <span className="text-white font-bold text-lg md:text-xl">{formatPrice(selectedBeat[selectedLicense.priceKey])}</span></p>}
+                  </div>
+                  <button
+                    onClick={handleCheckout}
+                    disabled={!selectedLicense || checkoutLoading}
+                    className={`w-full md:w-auto px-6 md:px-8 py-2.5 md:py-3 rounded-full font-semibold transition text-sm md:text-base flex items-center justify-center gap-2 ${
+                      selectedLicense && !checkoutLoading
+                        ? 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
+                        : 'bg-white/10 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Processing...
+                      </>
+                    ) : selectedLicense ? (
+                      <>
+                        <span>💳</span>
+                        Proceed to Checkout
+                      </>
+                    ) : (
+                      'Select a License'
+                    )}
+                  </button>
                 </div>
-                <button onClick={handleCheckout} disabled={!selectedLicense}
-                  className={`w-full md:w-auto px-6 md:px-8 py-2.5 md:py-3 rounded-full font-semibold transition text-sm md:text-base ${selectedLicense ? 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white' : 'bg-white/10 text-gray-500 cursor-not-allowed'}`}>
-                  {selectedLicense ? 'Proceed to Checkout' : 'Select a License'}
-                </button>
+
+                {/* Payment Methods Note */}
+                {selectedLicense && (
+                  <p className="text-center text-gray-600 text-xs mt-4">
+                    Secure checkout powered by Stripe. Pay with card, Apple Pay, or Google Pay.
+                  </p>
+                )}
               </div>
             </div>
           </div>
