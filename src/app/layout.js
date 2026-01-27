@@ -3,6 +3,7 @@ import SmoothScroll from './components/SmoothScroll'
 import CustomCursor from './components/animations/Cursor'
 import PageTransitionProvider from './components/PageTransitionProvider'
 import { PageLoaderProvider } from './components/PageLoader'
+import CookieBanner from './components/CookieBanner'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://trproductions.de'
@@ -104,6 +105,7 @@ export default function RootLayout({ children }) {
             </PageTransitionProvider>
           </SmoothScroll>
           <CustomCursor />
+          <CookieBanner />
         </PageLoaderProvider>
         <SpeedInsights />
       </body>

@@ -215,10 +215,40 @@ export async function generateLicensePDF({
 
   y += 5
 
-  // Section 5: Restrictions
+  // Section 5: Publishing Rights & Royalty Splits
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.text('5. RESTRICTIONS', margin, y)
+  doc.text('5. PUBLISHING RIGHTS & ROYALTY SPLITS', margin, y)
+
+  y += 6
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+
+  const pubText = 'This license includes a 20% publishing split. The Producer (TR Productions / Timo Romeo) retains 20% of the publishing/composition rights. The Licensee receives 80% of the publishing rights' + (exclusive ? ' and full ownership of the master recording.' : '.')
+  const pubLines = doc.splitTextToSize(pubText, contentWidth)
+  doc.text(pubLines, margin, y)
+  y += pubLines.length * 4 + 2
+
+  doc.setTextColor(...purple)
+  doc.setFont('helvetica', 'bold')
+  doc.text('• Producer Publishing Share: 20%', margin, y)
+  y += 5
+  doc.text('• Licensee Publishing Share: 80%', margin, y)
+  y += 5
+  if (exclusive) {
+    doc.text('• Master Ownership: 100% Licensee', margin, y)
+  } else {
+    doc.text('• License Type: Non-Exclusive', margin, y)
+  }
+  doc.setTextColor(...dark)
+  doc.setFont('helvetica', 'normal')
+
+  y += 10
+
+  // Section 6: Restrictions
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('6. RESTRICTIONS', margin, y)
 
   y += 6
   doc.setFontSize(9)
@@ -228,6 +258,7 @@ export async function generateLicensePDF({
     '• The beat cannot be resold, transferred, or sub-licensed',
     '• The beat cannot be used in content that promotes hate or violence',
     '• The beat cannot be registered with a content ID service without permission',
+    '• The beat cannot be used for NFTs or AI training purposes',
     exclusive ? '• No restrictions on commercial use with this license' : '• Cannot be used for commercial advertisements without additional licensing'
   ]
 

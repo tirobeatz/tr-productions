@@ -40,10 +40,10 @@ export default function BeatsPage() {
   const allTags = ['dark', 'melodic', 'hard', 'emotional', 'bouncy', 'chill', 'aggressive', 'smooth', 'sad']
 
   const licenses = [
-    { id: 'mp3', name: 'MP3 Lease', priceKey: 'price_mp3', features: ['MP3 File', 'Up to 100,000 streams', 'Must credit producer', 'Non-exclusive rights'] },
-    { id: 'wav', name: 'WAV Lease', priceKey: 'price_wav', features: ['WAV + MP3 Files', 'Up to 500,000 streams', 'Must credit producer', 'Non-exclusive rights'] },
-    { id: 'unlimited', name: 'Unlimited', priceKey: 'price_stems', features: ['WAV + MP3 + Stems', 'Unlimited streams', 'Music videos allowed', 'Non-exclusive rights'] },
-    { id: 'exclusive', name: 'Exclusive', priceKey: 'price_exclusive', features: ['Full ownership rights', 'Beat removed from store', 'No credit required', 'Exclusive rights'], highlight: true }
+    { id: 'mp3', name: 'MP3 Lease', priceKey: 'price_mp3', features: ['MP3 File (320kbps)', 'Up to 50,000 streams', 'Must credit producer', 'Non-exclusive rights', '20% publishing split'] },
+    { id: 'wav', name: 'WAV Lease', priceKey: 'price_wav', features: ['WAV + MP3 Files', 'Up to 100,000 streams', 'Must credit producer', 'Non-exclusive rights', '20% publishing split'] },
+    { id: 'unlimited', name: 'Stems', priceKey: 'price_stems', features: ['WAV + MP3 + Stems', 'Up to 250,000 streams', '1 music video allowed', 'Non-exclusive rights', '20% publishing split'] },
+    { id: 'exclusive', name: 'Exclusive', priceKey: 'price_exclusive', features: ['Full master ownership', 'Unlimited streams/sales', 'Beat removed from store', '20% publishing split', 'Unlimited music videos'], highlight: true }
   ]
 
   useEffect(() => {

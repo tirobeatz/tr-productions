@@ -8,26 +8,29 @@ export const LICENSE_DETAILS = {
   mp3: {
     name: 'MP3 Lease',
     files: ['mp3'],
-    streams: '100,000',
+    streams: '50,000',
     credit: true,
     exclusive: false,
-    description: 'MP3 file with up to 100,000 streams'
+    publishingSplit: '20%',
+    description: 'MP3 file with up to 50,000 streams. 20% publishing split to producer.'
   },
   wav: {
     name: 'WAV Lease',
     files: ['mp3', 'wav'],
-    streams: '500,000',
+    streams: '100,000',
     credit: true,
     exclusive: false,
-    description: 'WAV + MP3 files with up to 500,000 streams'
+    publishingSplit: '20%',
+    description: 'WAV + MP3 files with up to 100,000 streams. 20% publishing split to producer.'
   },
   unlimited: {
-    name: 'Unlimited Lease',
+    name: 'Stems License',
     files: ['mp3', 'wav', 'stems'],
-    streams: 'Unlimited',
+    streams: '250,000',
     credit: true,
     exclusive: false,
-    description: 'WAV + MP3 + Stems with unlimited streams'
+    publishingSplit: '20%',
+    description: 'WAV + MP3 + Stems with up to 250,000 streams. 20% publishing split to producer.'
   },
   exclusive: {
     name: 'Exclusive Rights',
@@ -35,6 +38,7 @@ export const LICENSE_DETAILS = {
     streams: 'Unlimited',
     credit: false,
     exclusive: true,
-    description: 'Full exclusive ownership rights'
+    publishingSplit: '20%',
+    description: 'Full exclusive ownership. 20% publishing split to producer.'
   }
 }
