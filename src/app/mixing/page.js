@@ -38,8 +38,8 @@ export default function MixingPage() {
   const RUSH_FEE = 30
 
   const stats = [
-    { value: '150+', label: 'Tracks Mixed', icon: '🎚️' },
-    { value: '80+', label: 'Happy Artists', icon: '🎤' },
+    { value: '100+', label: 'Tracks Mixed', icon: '🎚️' },
+    { value: '120+', label: 'Happy Artists', icon: '🎤' },
     { value: '48h', label: 'Avg. Delivery', icon: '⚡' },
     { value: '100%', label: 'Satisfaction', icon: '⭐' }
   ]
