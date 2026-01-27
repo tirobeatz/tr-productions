@@ -73,12 +73,9 @@ const defaultContent = {
     { front: 'Beats made at 3AM?', back: 'Too many to count... 😅', icon: '⏰' }
   ],
   socials: [
-    { name: 'Instagram', icon: '📸', url: '#', color: 'from-purple-500 to-pink-500', handle: '@trproductions' },
-    { name: 'YouTube', icon: '🎬', url: '#', color: 'from-red-500 to-red-600', handle: 'TR Productions' },
-    { name: 'TikTok', icon: '🎵', url: '#', color: 'from-gray-800 to-black', handle: '@trproductions' },
-    { name: 'Twitter', icon: '🐦', url: '#', color: 'from-blue-400 to-blue-500', handle: '@tr_beats' },
-    { name: 'Spotify', icon: '🎧', url: '#', color: 'from-green-500 to-green-600', handle: 'TR Productions' },
-    { name: 'SoundCloud', icon: '☁️', url: '#', color: 'from-orange-500 to-orange-600', handle: 'trproductions' }
+    { name: 'Instagram', icon: '📸', url: 'https://instagram.com/tirobeatz', color: 'from-purple-500 to-pink-500', handle: '@tirobeatz' },
+    { name: 'YouTube', icon: '🎬', url: 'https://youtube.com/@tirobeatz', color: 'from-red-500 to-red-600', handle: 'Tirobeatz' },
+    { name: 'TikTok', icon: '🎵', url: 'https://tiktok.com/@tirobeatz', color: 'from-gray-800 to-black', handle: '@tirobeatz' }
   ],
   cta_title: "Let's Create Together",
   cta_subtitle: 'Got a project in mind? Need a beat? Want to book a session?',
