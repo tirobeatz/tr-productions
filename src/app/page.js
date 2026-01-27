@@ -32,6 +32,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [siteImages, setSiteImages] = useState([])
+  const [testimonials, setTestimonials] = useState([])
+  const [aboutStats, setAboutStats] = useState(null)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -115,7 +117,24 @@ export default function Home() {
   useEffect(() => {
     fetchBeats()
     fetchSiteImages()
+    fetchTestimonials()
+    fetchAboutStats()
   }, [])
+
+  const fetchAboutStats = async () => {
+    const { data } = await supabase.from('about_content').select('stats').single()
+    if (data?.stats) setAboutStats(data.stats)
+  }
+
+  const fetchTestimonials = async () => {
+    const { data } = await supabase
+      .from('testimonials')
+      .select('*')
+      .eq('is_active', true)
+      .or('page.eq.all,page.eq.home')
+      .order('display_order', { ascending: true })
+    setTestimonials(data || [])
+  }
 
   const fetchSiteImages = async () => {
     const { data } = await supabase.from('site_images').select('*').eq('is_active', true)
@@ -222,11 +241,8 @@ export default function Home() {
     { icon: '🎤', title: 'Studio Sessions', desc: 'Book time in my professional studio in Trier. Recording, production, and creative sessions.', link: '/studio', cta: 'Book Session' },
   ]
 
-  const testimonials = [
-    { initials: 'MJ', name: 'Marcus J.', role: 'Hip-Hop Artist', text: 'The mix came out incredible. TR really understood the vibe I was going for and elevated the whole track.' },
-    { initials: 'LM', name: 'Lisa M.', role: 'R&B Singer', text: 'Studio sessions with TR are always productive. Great energy, professional setup, and amazing results.' },
-    { initials: 'DK', name: 'David K.', role: 'Rapper', text: 'Bought 3 beats so far and every one has been fire. The quality is unmatched for the price.' },
-  ]
+  // Helper to get initials from name
+  const getInitials = (name) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
 
   return (
     <main className="min-h-screen bg-[#050505] text-white relative overflow-x-hidden">
@@ -320,15 +336,37 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap justify-center lg:justify-start gap-x-4 sm:gap-x-6 gap-y-2 mt-8 sm:mt-12 text-xs sm:text-sm text-gray-500 animate-slide-up animation-delay-400">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-white font-semibold">500+</span> Beats
-              </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-white font-semibold">200+</span> Artists
-              </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="text-white font-semibold">5+</span> Years
-              </div>
+              {aboutStats ? (
+                <>
+                  {aboutStats.find(s => s.label === 'Beats Made') && (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-white font-semibold">{aboutStats.find(s => s.label === 'Beats Made').value}+</span> Beats
+                    </div>
+                  )}
+                  {aboutStats.find(s => s.label === 'Artists Worked With') && (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-white font-semibold">{aboutStats.find(s => s.label === 'Artists Worked With').value}+</span> Artists
+                    </div>
+                  )}
+                  {aboutStats.find(s => s.label === 'Years Experience') && (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-white font-semibold">{aboutStats.find(s => s.label === 'Years Experience').value}+</span> Years
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="text-white font-semibold">500+</span> Beats
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="text-white font-semibold">200+</span> Artists
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="text-white font-semibold">5+</span> Years
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -566,39 +604,41 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="relative py-16 sm:py-20 md:py-32 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <FadeUp className="text-center mb-10 sm:mb-12 md:mb-20">
-            <p className="text-gray-500 font-medium mb-3 sm:mb-4 tracking-[0.15em] sm:tracking-[0.2em] uppercase text-[10px] sm:text-xs">Testimonials</p>
-            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">
-              <GlitchText>What Artists Say</GlitchText>
-            </h2>
-          </FadeUp>
+      {testimonials.length > 0 && (
+        <section className="relative py-16 sm:py-20 md:py-32 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto">
+            <FadeUp className="text-center mb-10 sm:mb-12 md:mb-20">
+              <p className="text-gray-500 font-medium mb-3 sm:mb-4 tracking-[0.15em] sm:tracking-[0.2em] uppercase text-[10px] sm:text-xs">Testimonials</p>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">
+                <GlitchText>What Artists Say</GlitchText>
+              </h2>
+            </FadeUp>
 
-          <StaggerChildren className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6" stagger={0.12}>
-            {testimonials.map((testimonial) => (
-              <div
-                key={testimonial.name}
-                className="bg-white/[0.02] border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8 hover:border-[#8B5CF6]/20 hover:bg-white/[0.03] transition-all duration-500 hover:-translate-y-1"
-              >
-                <div className="flex gap-0.5 sm:gap-1 mb-3 sm:mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-[#8B5CF6] text-sm sm:text-base">★</span>
-                  ))}
-                </div>
-                <p className="text-gray-400 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-xs sm:text-sm italic">"{testimonial.text}"</p>
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#8B5CF6]/30 to-[#8B5CF6]/10 flex items-center justify-center text-xs sm:text-sm font-medium">{testimonial.initials}</div>
-                  <div>
-                    <p className="font-medium text-xs sm:text-sm">{testimonial.name}</p>
-                    <p className="text-gray-600 text-[10px] sm:text-xs">{testimonial.role}</p>
+            <StaggerChildren className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6" stagger={0.12}>
+              {testimonials.map((testimonial) => (
+                <div
+                  key={testimonial.id}
+                  className="bg-white/[0.02] border border-white/5 rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8 hover:border-[#8B5CF6]/20 hover:bg-white/[0.03] transition-all duration-500 hover:-translate-y-1"
+                >
+                  <div className="flex gap-0.5 sm:gap-1 mb-3 sm:mb-4">
+                    {[...Array(testimonial.rating || 5)].map((_, i) => (
+                      <span key={i} className="text-[#8B5CF6] text-sm sm:text-base">★</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-400 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-xs sm:text-sm italic">"{testimonial.text}"</p>
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#8B5CF6]/30 to-[#8B5CF6]/10 flex items-center justify-center text-xs sm:text-sm font-medium">{getInitials(testimonial.name)}</div>
+                    <div>
+                      <p className="font-medium text-xs sm:text-sm">{testimonial.name}</p>
+                      <p className="text-gray-600 text-[10px] sm:text-xs">{testimonial.role}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </StaggerChildren>
-        </div>
-      </section>
+              ))}
+            </StaggerChildren>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="relative py-16 sm:py-20 md:py-32 px-4 sm:px-6">

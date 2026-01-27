@@ -73,9 +73,9 @@ const defaultContent = {
     { front: 'Beats made at 3AM?', back: 'Too many to count... 😅', icon: '⏰' }
   ],
   socials: [
-    { name: 'Instagram', icon: '📸', url: 'https://instagram.com/tirobeatz', color: 'from-purple-500 to-pink-500', handle: '@tirobeatz' },
-    { name: 'YouTube', icon: '🎬', url: 'https://youtube.com/@tirobeatz', color: 'from-red-500 to-red-600', handle: 'Tirobeatz' },
-    { name: 'TikTok', icon: '🎵', url: 'https://tiktok.com/@tirobeatz', color: 'from-gray-800 to-black', handle: '@tirobeatz' }
+    { name: 'Instagram', icon: '📸', url: 'https://www.instagram.com/tr.productionz/', color: 'from-purple-500 to-pink-500', handle: '@tr.productionz' },
+    { name: 'YouTube', icon: '🎬', url: 'https://www.youtube.com/@trproductionz', color: 'from-red-500 to-red-600', handle: '@trproductionz' },
+    { name: 'TikTok', icon: '🎵', url: 'https://www.tiktok.com/@trproductions', color: 'from-gray-800 to-black', handle: '@trproductions' }
   ],
   cta_title: "Let's Create Together",
   cta_subtitle: 'Got a project in mind? Need a beat? Want to book a session?',
@@ -253,7 +253,7 @@ export default function AboutPage() {
             <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-[#8B5CF6] via-[#8B5CF6]/50 to-transparent" />
 
             {timeline.map((item, i) => (
-              <motion.div key={item.year} initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+              <motion.div key={`${item.year}-${i}`} initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                 className={`relative flex items-center mb-8 md:mb-12 ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
                 <div className="absolute left-6 md:left-1/2 w-3 h-3 md:w-4 md:h-4 -translate-x-1/2 bg-[#8B5CF6] rounded-full z-10 ring-4 ring-[#050505]" />
                 <div className={`ml-12 md:ml-0 md:w-[45%] ${i % 2 === 0 ? 'md:pr-8 md:text-right' : 'md:pl-8'}`} onClick={() => setActiveTimeline(activeTimeline === i ? null : i)}>

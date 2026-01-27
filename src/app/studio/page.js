@@ -24,14 +24,12 @@ export default function StudioPage() {
   const [loading, setLoading] = useState(true)
   const [siteImages, setSiteImages] = useState([])
   const [visibleSections, setVisibleSections] = useState({})
+  const [testimonials, setTestimonials] = useState([])
 
   const HOURLY_RATE = 30, MIX_MASTER_RATE = 60, BULK_DISCOUNT_HOURS = 5, BULK_RATE = 25
   const allHours = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
-  const testimonials = [
-    { name: 'Marcus J.', role: 'Rapper', text: 'Super chill vibe. TR knows how to get the best take out of you.', rating: 5 },
-    { name: 'Sarah K.', role: 'Singer', text: "Finally a studio where I don't feel rushed. Fair prices!", rating: 5 },
-  ]
+  const getInitials = (name) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
 
   const whatToExpect = [
     { icon: '🎤', title: 'Recording', text: 'Professional vocal recording with guidance' },
@@ -55,10 +53,14 @@ export default function StudioPage() {
     return () => observer.disconnect()
   }, [mounted])
 
-  const fetchData = async () => { setLoading(true); await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages()]); setLoading(false) }
+  const fetchData = async () => { setLoading(true); await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages(), fetchTestimonials()]); setLoading(false) }
   const fetchAvailability = async () => { const { data } = await supabase.from('studio_availability').select('*').order('date', { ascending: true }); setAvailability(data || []) }
   const fetchBookings = async () => { const { data } = await supabase.from('studio_bookings').select('*').in('status', ['pending', 'confirmed']); setBookings(data || []) }
   const fetchSiteImages = async () => { const { data } = await supabase.from('site_images').select('*').eq('is_active', true); setSiteImages(data || []) }
+  const fetchTestimonials = async () => {
+    const { data } = await supabase.from('testimonials').select('*').eq('is_active', true).or('page.eq.all,page.eq.studio').order('display_order', { ascending: true })
+    setTestimonials(data || [])
+  }
 
   const getImage = (loc) => {
     const img = siteImages.find(img => img.location === loc)
@@ -303,23 +305,25 @@ export default function StudioPage() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className={`text-center mb-8 ${anim('testimonials')}`}>
-            <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Reviews</p>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">What Artists Say</h2>
+      {testimonials.length > 0 && (
+        <section id="testimonials" data-animate className="relative py-16 md:py-20 px-4 md:px-6">
+          <div className="max-w-4xl mx-auto">
+            <div className={`text-center mb-8 ${anim('testimonials')}`}>
+              <p className="text-gray-500 font-medium mb-3 tracking-[0.2em] uppercase text-xs">Reviews</p>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight">What Artists Say</h2>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {testimonials.map((t, i) => (
+                <div key={t.id} className={`bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:border-[#8B5CF6]/20 transition-all duration-500 ${anim('testimonials')}`} style={{ transitionDelay: `${i * 100}ms` }}>
+                  <div className="flex gap-1 mb-3">{[...Array(t.rating || 5)].map((_, j) => <span key={j} className="text-[#8B5CF6] text-sm">★</span>)}</div>
+                  <p className="text-gray-300 mb-4 italic text-sm">"{t.text}"</p>
+                  <div><p className="font-semibold text-sm">{t.name}</p><p className="text-gray-500 text-xs">{t.role}</p></div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {testimonials.map((t, i) => (
-              <div key={t.name} className={`bg-white/[0.02] border border-white/5 rounded-xl p-5 hover:border-[#8B5CF6]/20 transition-all duration-500 ${anim('testimonials')}`} style={{ transitionDelay: `${i * 100}ms` }}>
-                <div className="flex gap-1 mb-3">{[...Array(t.rating)].map((_, j) => <span key={j} className="text-[#8B5CF6] text-sm">★</span>)}</div>
-                <p className="text-gray-300 mb-4 italic text-sm">"{t.text}"</p>
-                <div><p className="font-semibold text-sm">{t.name}</p><p className="text-gray-500 text-xs">{t.role}</p></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Location */}
       <section id="location" data-animate className="relative py-16 md:py-20 px-4 md:px-6">

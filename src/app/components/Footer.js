@@ -29,9 +29,9 @@ export default function Footer() {
         <div className="border-t border-white/5 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-600 text-sm">© 2025 TR Productions</p>
           <div className="flex gap-6">
-            <a href="https://instagram.com/tirobeatz" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition text-sm">Instagram</a>
-            <a href="https://youtube.com/@tirobeatz" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition text-sm">YouTube</a>
-            <a href="https://tiktok.com/@tirobeatz" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition text-sm">TikTok</a>
+            <a href="https://www.instagram.com/tr.productionz/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition text-sm">Instagram</a>
+            <a href="https://www.youtube.com/@trproductionz" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition text-sm">YouTube</a>
+            <a href="https://www.tiktok.com/@trproductions" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-white transition text-sm">TikTok</a>
           </div>
         </div>
       </div>

@@ -22,9 +22,9 @@ export default function ContactPage() {
   }, [])
 
   const contactMethods = [
-    { icon: '📧', title: 'Email', value: 'info@trproductions.de', desc: 'Best for detailed inquiries', action: 'mailto:info@trproductions.de', time: 'Usually within 24 hours' },
+    { icon: '📧', title: 'Email', value: 'contact@trproductions.de', desc: 'Best for detailed inquiries', action: 'mailto:contact@trproductions.de', time: 'Usually within 24 hours' },
     { icon: '📍', title: 'Location', value: 'Trier, Germany', desc: 'Home studio sessions', action: null, time: 'By appointment only' },
-    { icon: '💬', title: 'Instagram DM', value: '@tirobeatz', desc: 'Quick questions and updates', action: 'https://instagram.com/tirobeatz', time: 'Usually within a few hours' }
+    { icon: '💬', title: 'Instagram DM', value: '@tr.productionz', desc: 'Quick questions and updates', action: 'https://www.instagram.com/tr.productionz/', time: 'Usually within a few hours' }
   ]
 
   const subjects = [
@@ -45,9 +45,9 @@ export default function ContactPage() {
   ]
 
   const socials = [
-    { name: 'Instagram', icon: '📸', url: 'https://instagram.com/tirobeatz', handle: '@tirobeatz' },
-    { name: 'YouTube', icon: '🎬', url: 'https://youtube.com/@tirobeatz', handle: 'Tirobeatz' },
-    { name: 'TikTok', icon: '🎵', url: 'https://tiktok.com/@tirobeatz', handle: '@tirobeatz' }
+    { name: 'Instagram', icon: '📸', url: 'https://www.instagram.com/tr.productionz/', handle: '@tr.productionz' },
+    { name: 'YouTube', icon: '🎬', url: 'https://www.youtube.com/@trproductionz', handle: '@trproductionz' },
+    { name: 'TikTok', icon: '🎵', url: 'https://www.tiktok.com/@trproductions', handle: '@trproductions' }
   ]
 
   const handleSubmit = async (e) => {

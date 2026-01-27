@@ -28,6 +28,7 @@ export default function MixingPage() {
   const [mixDemo, setMixDemo] = useState(null)
   const [recentMixes, setRecentMixes] = useState([])
   const [releases, setReleases] = useState([])
+  const [testimonials, setTestimonials] = useState([])
   const [playingMixId, setPlayingMixId] = useState(null)
 
   const audioRef = useRef(null)
@@ -67,11 +68,7 @@ export default function MixingPage() {
     { icon: '💰', title: 'Fair & Transparent', desc: 'One price, no hidden fees, no upsells.', highlight: 'Just €60 per track' }
   ]
 
-  const testimonials = [
-    { name: 'Jay Flex', role: 'Rapper', text: 'TR made my vocals sit perfectly in the mix. The 808s hit hard and everything sounds professional.', avatar: 'JF' },
-    { name: 'Luna Marie', role: 'Singer', text: 'Finally found someone who understands R&B vocals. The warmth and clarity is exactly what I wanted.', avatar: 'LM' },
-    { name: 'Dre Money', role: 'Artist', text: 'Quick turnaround, great communication, and the final mix was fire. 10/10 recommend.', avatar: 'DM' }
-  ]
+  const getInitials = (name) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
 
   const faqs = [
     { q: 'What files do I need to send?', a: 'At minimum: your raw vocal recording (WAV preferred) and the beat/instrumental. If you have stems, even better!' },
@@ -95,11 +92,22 @@ export default function MixingPage() {
     fetchMixDemo()
     fetchRecentMixes()
     fetchReleases()
+    fetchTestimonials()
 
     const handleResize = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handleResize, { passive: true })
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  const fetchTestimonials = async () => {
+    const { data } = await supabase
+      .from('testimonials')
+      .select('*')
+      .eq('is_active', true)
+      .or('page.eq.all,page.eq.mixing')
+      .order('display_order', { ascending: true })
+    setTestimonials(data || [])
+  }
 
   const fetchMixDemo = async () => {
     const { data } = await supabase.from('mix_demos').select('*').eq('is_active', true).limit(1).single()
@@ -1081,68 +1089,70 @@ export default function MixingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="relative py-16 md:py-24 px-4 md:px-6">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            className="text-center mb-10 md:mb-16"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-          >
-            <p className="text-gray-500 font-medium mb-3 md:mb-4 tracking-[0.3em] uppercase text-xs">Reviews</p>
-            <h2 className="text-4xl md:text-6xl font-bold tracking-tight">Artists Love It</h2>
-          </motion.div>
+      {testimonials.length > 0 && (
+        <section className="relative py-16 md:py-24 px-4 md:px-6">
+          <div className="max-w-5xl mx-auto">
+            <motion.div
+              className="text-center mb-10 md:mb-16"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+            >
+              <p className="text-gray-500 font-medium mb-3 md:mb-4 tracking-[0.3em] uppercase text-xs">Reviews</p>
+              <h2 className="text-4xl md:text-6xl font-bold tracking-tight">Artists Love It</h2>
+            </motion.div>
 
-          <motion.div
-            className="grid md:grid-cols-3 gap-5 md:gap-6"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-            variants={{ visible: { transition: { staggerChildren: 0.15 } } }}
-          >
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={t.name}
-                className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 hover:border-[#8B5CF6]/20 transition-all duration-500 group"
-                variants={fadeUp}
-                whileHover={{ y: -5 }}
-              >
-                {/* Stars */}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <motion.span
-                      key={i}
-                      className="text-[#8B5CF6] text-lg"
-                      initial={{ opacity: 0, scale: 0 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                    >
-                      ★
-                    </motion.span>
-                  ))}
-                </div>
-
-                <p className="text-gray-300 mb-6 leading-relaxed text-sm md:text-base italic">"{t.text}"</p>
-
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6] to-purple-600 rounded-full flex items-center justify-center text-sm font-bold"
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    {t.avatar}
-                  </motion.div>
-                  <div>
-                    <p className="font-semibold">{t.name}</p>
-                    <p className="text-gray-500 text-sm">{t.role}</p>
+            <motion.div
+              className="grid md:grid-cols-3 gap-5 md:gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={{ visible: { transition: { staggerChildren: 0.15 } } }}
+            >
+              {testimonials.map((t, i) => (
+                <motion.div
+                  key={t.id}
+                  className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 hover:border-[#8B5CF6]/20 transition-all duration-500 group"
+                  variants={fadeUp}
+                  whileHover={{ y: -5 }}
+                >
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(t.rating || 5)].map((_, i) => (
+                      <motion.span
+                        key={i}
+                        className="text-[#8B5CF6] text-lg"
+                        initial={{ opacity: 0, scale: 0 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        ★
+                      </motion.span>
+                    ))}
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+
+                  <p className="text-gray-300 mb-6 leading-relaxed text-sm md:text-base italic">"{t.text}"</p>
+
+                  <div className="flex items-center gap-4">
+                    <motion.div
+                      className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6] to-purple-600 rounded-full flex items-center justify-center text-sm font-bold"
+                      whileHover={{ scale: 1.1 }}
+                    >
+                      {getInitials(t.name)}
+                    </motion.div>
+                    <div>
+                      <p className="font-semibold">{t.name}</p>
+                      <p className="text-gray-500 text-sm">{t.role}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Submit Form */}
       <section id="submit" className="relative py-16 md:py-24 px-4 md:px-6">
@@ -1185,7 +1195,7 @@ export default function MixingPage() {
                   <p className="text-gray-500 mb-6 text-sm md:text-base">I'll review your project and get back to you within 24 hours.</p>
                   <div className="bg-white/5 rounded-2xl p-4 inline-block">
                     <p className="text-sm text-gray-400">Send your audio files to:</p>
-                    <p className="text-[#8B5CF6] font-bold text-lg">mix@trproductions.de</p>
+                    <p className="text-[#8B5CF6] font-bold text-lg">mixmaster@trproductions.de</p>
                   </div>
                 </motion.div>
               ) : (
@@ -1345,7 +1355,7 @@ export default function MixingPage() {
                   </motion.button>
 
                   <p className="text-center text-gray-600 text-xs">
-                    After submitting, send your files to mix@trproductions.de or via WeTransfer
+                    After submitting, send your files to mixmaster@trproductions.de or via WeTransfer
                   </p>
                 </motion.form>
               )}

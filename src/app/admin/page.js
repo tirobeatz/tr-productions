@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [siteImages, setSiteImages] = useState([])
   const [admins, setAdmins] = useState([])
   const [releases, setReleases] = useState([])
+  const [testimonials, setTestimonials] = useState([])
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
@@ -157,7 +158,7 @@ export default function AdminPage() {
   const fetchAllData = async () => {
     setLoading(true)
     try {
-      const [b, bk, mx, msg, av, md, rm, si, ad, rel] = await Promise.all([
+      const [b, bk, mx, msg, av, md, rm, si, ad, rel, test] = await Promise.all([
         supabase.from('beats').select('*').order('created_at', { ascending: false }),
         supabase.from('studio_bookings').select('*').order('created_at', { ascending: false }),
         supabase.from('mix_requests').select('*').order('created_at', { ascending: false }),
@@ -167,12 +168,13 @@ export default function AdminPage() {
         supabase.from('recent_mixes').select('*').order('created_at', { ascending: false }),
         supabase.from('site_images').select('*').order('created_at', { ascending: false }),
         getAllAdmins(),
-        supabase.from('releases').select('*').order('display_order', { ascending: true })
+        supabase.from('releases').select('*').order('display_order', { ascending: true }),
+        supabase.from('testimonials').select('*').order('display_order', { ascending: true })
       ])
       setBeats(b.data || []); setBookings(bk.data || []); setMixRequests(mx.data || [])
       setMessages(msg.data || []); setAvailability(av.data || []); setMixDemos(md.data || [])
       setRecentMixes(rm.data || []); setSiteImages(si.data || []); setAdmins(ad.admins || [])
-      setReleases(rel.data || [])
+      setReleases(rel.data || []); setTestimonials(test.data || [])
     } catch (err) {
       console.error('Fetch data error:', err)
     }
@@ -379,6 +381,7 @@ export default function AdminPage() {
     { id: 'mixing', label: 'Mix', icon: '🎚️', count: mixRequests.filter(m => m.status === 'pending').length },
     { id: 'mixdemo', label: 'Demo', icon: '🔊', count: null },
     { id: 'recentmixes', label: 'Portfolio', icon: '💿', count: null },
+    { id: 'testimonials', label: 'Reviews', icon: '⭐', count: testimonials.length },
     { id: 'images', label: 'Images', icon: '🖼️', count: null },
     { id: 'about', label: 'About', icon: '📝', count: null },
     { id: 'messages', label: 'Messages', icon: '💬', count: messages.filter(m => !m.is_read).length },
@@ -454,6 +457,7 @@ export default function AdminPage() {
             {activeTab === 'mixing' && <MixRequestsManager requests={mixRequests} onRefresh={fetchAllData} formatPrice={formatPrice} formatDate={formatDate} />}
             {activeTab === 'mixdemo' && <MixDemoManager demos={mixDemos} onRefresh={fetchAllData} />}
             {activeTab === 'recentmixes' && <RecentMixesManager mixes={recentMixes} onRefresh={fetchAllData} isMobile={isMobile} />}
+            {activeTab === 'testimonials' && <TestimonialsManager testimonials={testimonials} onRefresh={fetchAllData} isMobile={isMobile} />}
             {activeTab === 'images' && <SiteImagesManager images={siteImages} onRefresh={fetchAllData} />}
             {activeTab === 'about' && <AboutContentManager onRefresh={fetchAllData} />}
             {activeTab === 'messages' && <MessagesManager messages={messages} onRefresh={fetchAllData} formatDate={formatDate} />}
@@ -1463,6 +1467,164 @@ function AdminsManager({ admins, currentAdmin, onRefresh, formatDate }) {
         <div className="flex gap-3 mt-6">
           <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-white/10 rounded-xl text-gray-400 text-sm">Cancel</button>
           <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-[#8B5CF6] rounded-xl font-semibold disabled:opacity-50 text-sm">{saving ? 'Adding...' : 'Add Admin'}</button>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+// ============ TESTIMONIALS MANAGER ============
+function TestimonialsManager({ testimonials, onRefresh, isMobile }) {
+  const [showModal, setShowModal] = useState(false)
+  const [editingTestimonial, setEditingTestimonial] = useState(null)
+  const [formData, setFormData] = useState({ name: '', role: '', text: '', rating: 5, page: 'all', is_active: true, display_order: 0 })
+  const [saving, setSaving] = useState(false)
+
+  const pages = [
+    { value: 'all', label: 'All Pages' },
+    { value: 'home', label: 'Home Page' },
+    { value: 'mixing', label: 'Mix & Master Page' },
+    { value: 'studio', label: 'Studio Page' }
+  ]
+
+  const openAdd = () => {
+    setEditingTestimonial(null)
+    setFormData({ name: '', role: '', text: '', rating: 5, page: 'all', is_active: true, display_order: testimonials.length })
+    setShowModal(true)
+  }
+
+  const openEdit = (t) => {
+    setEditingTestimonial(t)
+    setFormData({
+      name: t.name || '', role: t.role || '', text: t.text || '',
+      rating: t.rating || 5, page: t.page || 'all', is_active: t.is_active ?? true,
+      display_order: t.display_order || 0
+    })
+    setShowModal(true)
+  }
+
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.text.trim()) { alert('Name and text are required'); return }
+    setSaving(true)
+    const { error } = editingTestimonial
+      ? await supabase.from('testimonials').update(formData).eq('id', editingTestimonial.id)
+      : await supabase.from('testimonials').insert([formData])
+    if (error) alert('Error: ' + error.message)
+    else { setShowModal(false); onRefresh() }
+    setSaving(false)
+  }
+
+  const handleDelete = async (t) => {
+    if (!confirm(`Delete testimonial from "${t.name}"?`)) return
+    await supabase.from('testimonials').delete().eq('id', t.id)
+    onRefresh()
+  }
+
+  const toggleActive = async (t) => {
+    await supabase.from('testimonials').update({ is_active: !t.is_active }).eq('id', t.id)
+    onRefresh()
+  }
+
+  const getInitials = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h2 className="text-lg md:text-2xl font-bold">Manage Testimonials</h2>
+        <button onClick={openAdd} className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-4 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-semibold transition text-xs md:text-sm flex items-center gap-2">+ Add</button>
+      </div>
+
+      <div className="space-y-3">
+        {testimonials.length === 0 ? (
+          <EmptyState icon="⭐" text="No testimonials yet. Add your first review!" />
+        ) : (
+          testimonials.map(t => (
+            <div key={t.id} className={`bg-white/[0.02] border rounded-xl p-4 ${t.is_active ? 'border-white/10' : 'border-red-500/20 opacity-60'}`}>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {getInitials(t.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold">{t.name}</p>
+                    <span className="text-xs text-gray-500">{t.role}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-400">
+                      {pages.find(p => p.value === t.page)?.label || 'All Pages'}
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-sm mt-1 line-clamp-2">{t.text}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    {[1,2,3,4,5].map(star => (
+                      <span key={star} className={star <= t.rating ? 'text-yellow-400' : 'text-gray-600'}>★</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => toggleActive(t)} className={`text-xs px-2 py-1 rounded-full ${t.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    {t.is_active ? 'Active' : 'Hidden'}
+                  </button>
+                  <button onClick={() => openEdit(t)} className="p-2 text-gray-400 hover:text-white">✏️</button>
+                  <button onClick={() => handleDelete(t)} className="p-2 text-gray-400 hover:text-red-400">🗑️</button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <Modal show={showModal} onClose={() => setShowModal(false)} title={editingTestimonial ? 'Edit Testimonial' : 'Add Testimonial'}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Name" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="John Doe" />
+            <Input label="Role" required value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} placeholder="Rapper, Singer, etc." />
+          </div>
+          <div>
+            <label className="block text-xs md:text-sm text-gray-400 mb-2">Review Text *</label>
+            <textarea
+              value={formData.text}
+              onChange={e => setFormData({ ...formData, text: e.target.value })}
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 resize-none"
+              placeholder="What they said about your service..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs md:text-sm text-gray-400 mb-2">Rating</label>
+              <div className="flex gap-1">
+                {[1,2,3,4,5].map(star => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, rating: star })}
+                    className={`text-2xl ${star <= formData.rating ? 'text-yellow-400' : 'text-gray-600'}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs md:text-sm text-gray-400 mb-2">Show On</label>
+              <select
+                value={formData.page}
+                onChange={e => setFormData({ ...formData, page: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50"
+              >
+                {pages.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer text-sm">
+            <input type="checkbox" checked={formData.is_active} onChange={e => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded" />
+            Active (visible on website)
+          </label>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-white/10 rounded-xl text-gray-400 text-sm">Cancel</button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-[#8B5CF6] rounded-xl font-semibold disabled:opacity-50 text-sm">
+            {saving ? 'Saving...' : (editingTestimonial ? 'Update' : 'Add')}
+          </button>
         </div>
       </Modal>
     </div>
