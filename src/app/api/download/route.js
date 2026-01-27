@@ -57,11 +57,11 @@ export async function GET(request) {
     if (!fileType) {
       const availableFiles = []
 
-      if (allowedFiles.includes('mp3') && beat.audio_url) {
+      if (allowedFiles.includes('mp3') && beat.mp3_url) {
         availableFiles.push({
           type: 'mp3',
           name: `${beat.title}.mp3`,
-          url: beat.audio_url
+          url: beat.mp3_url
         })
       }
 
@@ -113,7 +113,7 @@ export async function GET(request) {
     let fileUrl
     switch (fileType) {
       case 'mp3':
-        fileUrl = beat.audio_url
+        fileUrl = beat.mp3_url
         break
       case 'wav':
         fileUrl = beat.wav_url

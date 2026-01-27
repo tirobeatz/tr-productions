@@ -77,9 +77,22 @@ export function Select({ label, options, className = '', ...props }) {
 }
 
 // File Upload Component
-export function FileUpload({ label, type, uploading, preview, onUpload }) {
-  const accept = type === 'audio' ? '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*' : 'image/*'
-  const icon = type === 'audio' ? '🔊' : '🖼️'
+export function FileUpload({ label, type, uploading, preview, onUpload, accept: customAccept }) {
+  // Default accept types based on file type
+  const defaultAccept = {
+    audio: '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*',
+    image: 'image/*',
+    file: '*'
+  }
+  const accept = customAccept || defaultAccept[type] || '*'
+
+  // Icons and labels based on type
+  const typeConfig = {
+    audio: { icon: '🔊', label: 'Audio uploaded' },
+    image: { icon: '🖼️', label: 'Image uploaded' },
+    file: { icon: '📦', label: 'File uploaded' }
+  }
+  const config = typeConfig[type] || typeConfig.file
 
   return (
     <div>
@@ -93,11 +106,11 @@ export function FileUpload({ label, type, uploading, preview, onUpload }) {
         ) : preview ? (
           <div className="flex items-center justify-center gap-2 text-green-400 text-xs md:text-sm">
             <span>✓</span>
-            <span>{type === 'audio' ? 'Audio uploaded' : 'Image uploaded'}</span>
+            <span>{config.label}</span>
           </div>
         ) : (
           <>
-            <span className="text-2xl md:text-3xl block mb-2">{icon}</span>
+            <span className="text-2xl md:text-3xl block mb-2">{config.icon}</span>
             <span className="text-gray-500 text-xs md:text-sm">Click to upload</span>
           </>
         )}
