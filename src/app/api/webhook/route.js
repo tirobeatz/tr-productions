@@ -99,8 +99,8 @@ export async function POST(request) {
         files: licenseDetails.files
       })
 
-      // Build download URL
-      const downloadUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/download?token=${downloadToken}`
+      // Build download URL (points to success page with token)
+      const downloadUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/purchase/success?token=${downloadToken}`
 
       // Send confirmation email with Resend
       try {
