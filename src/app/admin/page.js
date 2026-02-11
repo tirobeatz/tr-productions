@@ -501,26 +501,49 @@ const Select = ({ label, options, ...props }) => (
   </div>
 )
 
-const FileUpload = ({ label, onUpload, uploading, preview, type = 'image' }) => {
+const FileUpload = ({ label, onUpload, onDelete, uploading, preview, type = 'image' }) => {
   const ref = useRef(null)
-  const accept = type === 'image' ? 'image/*' : '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*'
-  const icon = type === 'image' ? '🖼️' : '🎵'
+  const accept = type === 'image' ? 'image/*' : type === 'file' ? '.zip,.rar,.7z' : '.mp3,.wav,.m4a,.aac,.ogg,.flac,audio/*'
+  const icon = type === 'image' ? '🖼️' : type === 'file' ? '📁' : '🎵'
+
+  const handleDelete = (e) => {
+    e.stopPropagation()
+    if (onDelete && confirm('Delete this file?')) {
+      onDelete()
+    }
+  }
+
   return (
     <div>
-      <label className="block text-xs md:text-sm text-gray-400 mb-1.5 md:mb-2">{label}</label>
+      {label && <label className="block text-xs md:text-sm text-gray-400 mb-1.5 md:mb-2">{label}</label>}
       <input ref={ref} type="file" accept={accept} onChange={e => onUpload(e.target.files?.[0])} className="hidden" />
-      <div onClick={() => ref.current?.click()} className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition ${preview ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 hover:border-[#8B5CF6]/30'}`}>
+      <div className={`border-2 border-dashed rounded-xl p-4 text-center transition ${preview ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 hover:border-[#8B5CF6]/30'}`}>
         {uploading ? <div className="w-5 h-5 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto" />
           : preview ? (
-            <div className="flex items-center justify-center gap-3">
-              {type === 'image' && <img src={preview} alt="" className="w-10 h-10 rounded-lg object-cover" />}
-              <div className="text-left">
-                <p className="text-green-400 text-sm">✓ Uploaded</p>
-                <p className="text-gray-500 text-xs">Click to replace</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => ref.current?.click()}>
+                {type === 'image' && <img src={preview} alt="" className="w-10 h-10 rounded-lg object-cover" />}
+                {type !== 'image' && <span className="text-xl">🎵</span>}
+                <div className="text-left">
+                  <p className="text-green-400 text-sm">✓ Uploaded</p>
+                  <p className="text-gray-500 text-xs">Click to replace</p>
+                </div>
               </div>
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition flex-shrink-0"
+                  title="Delete file"
+                >
+                  🗑️
+                </button>
+              )}
             </div>
           ) : (
-            <><span className="text-xl md:text-2xl block mb-1">{icon}</span><p className="text-gray-400 text-xs md:text-sm">Upload {type}</p></>
+            <div className="cursor-pointer" onClick={() => ref.current?.click()}>
+              <span className="text-xl md:text-2xl block mb-1">{icon}</span>
+              <p className="text-gray-400 text-xs md:text-sm">Upload {type}</p>
+            </div>
           )}
       </div>
     </div>
@@ -549,7 +572,7 @@ const EmptyState = ({ icon, text }) => (
 function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
   const [showModal, setShowModal] = useState(false)
   const [editingBeat, setEditingBeat] = useState(null)
-  const [formData, setFormData] = useState({ title: '', genre: 'Trap', bpm: 140, key: 'Cm', tags: [], price_mp3: 29.99, price_wav: 49.99, price_stems: 99.99, price_exclusive: 299.99, is_featured: false, is_sold: false, audio_url: '', image_url: '', mp3_url: '', wav_url: '', stems_url: '' })
+  const [formData, setFormData] = useState({ title: '', genre: 'Trap', bpm: 140, key: 'Cm', tags: [], price_mp3: null, price_wav: null, price_stems: null, price_exclusive: null, is_featured: false, is_sold: false, audio_url: '', image_url: '', mp3_url: '', wav_url: '', stems_url: '' })
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [uploadingTaggedAudio, setUploadingTaggedAudio] = useState(false)
@@ -561,8 +584,8 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
   const genres = ['Trap', 'Drill', 'R&B', 'Jersey', 'Rap', 'Pop', 'Afrobeat']
   const keys = ['C', 'Cm', 'D', 'Dm', 'E', 'Em', 'F', 'Fm', 'G', 'Gm', 'A', 'Am', 'B', 'Bm', 'Bb', 'Eb', 'Ab']
 
-  const openAdd = () => { setEditingBeat(null); setFormData({ title: '', genre: 'Trap', bpm: 140, key: 'Cm', tags: [], price_mp3: 29.99, price_wav: 49.99, price_stems: 99.99, price_exclusive: 299.99, is_featured: false, is_sold: false, audio_url: '', image_url: '', mp3_url: '', wav_url: '', stems_url: '' }); setShowModal(true) }
-  const openEdit = (b) => { setEditingBeat(b); setFormData({ title: b.title || '', genre: b.genre || 'Trap', bpm: b.bpm || 140, key: b.key || 'Cm', tags: b.tags || [], price_mp3: b.price_mp3 || 29.99, price_wav: b.price_wav || 49.99, price_stems: b.price_stems || 99.99, price_exclusive: b.price_exclusive || 299.99, is_featured: b.is_featured || false, is_sold: b.is_sold || false, audio_url: b.audio_url || '', image_url: b.image_url || '', mp3_url: b.mp3_url || '', wav_url: b.wav_url || '', stems_url: b.stems_url || '' }); setShowModal(true) }
+  const openAdd = () => { setEditingBeat(null); setFormData({ title: '', genre: 'Trap', bpm: 140, key: 'Cm', tags: [], price_mp3: null, price_wav: null, price_stems: null, price_exclusive: null, is_featured: false, is_sold: false, audio_url: '', image_url: '', mp3_url: '', wav_url: '', stems_url: '' }); setShowModal(true) }
+  const openEdit = (b) => { setEditingBeat(b); setFormData({ title: b.title || '', genre: b.genre || 'Trap', bpm: b.bpm || 140, key: b.key || 'Cm', tags: b.tags || [], price_mp3: b.price_mp3 ?? null, price_wav: b.price_wav ?? null, price_stems: b.price_stems ?? null, price_exclusive: b.price_exclusive ?? null, is_featured: b.is_featured || false, is_sold: b.is_sold || false, audio_url: b.audio_url || '', image_url: b.image_url || '', mp3_url: b.mp3_url || '', wav_url: b.wav_url || '', stems_url: b.stems_url || '' }); setShowModal(true) }
 
   const addTag = () => { if (tagInput.trim() && !formData.tags.includes(tagInput.trim().toLowerCase())) { setFormData({ ...formData, tags: [...formData.tags, tagInput.trim().toLowerCase()] }); setTagInput('') } }
   const removeTag = (t) => setFormData({ ...formData, tags: formData.tags.filter(x => x !== t) })
@@ -587,6 +610,10 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
       setFormData(f => ({ ...f, [field]: data.publicUrl }))
     } catch (e) { alert('Error: ' + e.message) }
     setUploading(false)
+  }
+
+  const deleteFile = (field) => {
+    setFormData(f => ({ ...f, [field]: '' }))
   }
 
   const handleSave = async () => {
@@ -623,7 +650,7 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
                   <p className="font-medium truncate">{b.title}</p>
                   <p className="text-xs text-gray-500">{b.genre} • {b.bpm} BPM • {b.key}</p>
                 </div>
-                <p className="font-bold text-sm">{formatPrice(b.price_mp3)}</p>
+                <p className="font-bold text-sm">{b.price_mp3 != null ? formatPrice(b.price_mp3) : <span className="text-gray-500">—</span>}</p>
               </div>
               {/* File status indicators */}
               <div className="flex gap-1 mb-3 flex-wrap">
@@ -682,7 +709,7 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
                     <td className="px-6 py-4 text-sm">{b.genre}</td>
                     <td className="px-6 py-4 text-sm">{b.bpm}</td>
                     <td className="px-6 py-4 text-sm">{b.key}</td>
-                    <td className="px-6 py-4 text-sm">{formatPrice(b.price_mp3)}</td>
+                    <td className="px-6 py-4 text-sm">{b.price_mp3 != null ? formatPrice(b.price_mp3) : <span className="text-gray-500">—</span>}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-1">
                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${hasFile(b.audio_url) ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`} title="Tagged Preview">🔊</span>
@@ -722,7 +749,7 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
           </div>
 
           {/* Cover Image */}
-          <FileUpload label="Cover Image" type="image" uploading={uploadingImage} preview={formData.image_url} onUpload={f => uploadFile(f, 'images', setUploadingImage, 'image_url')} />
+          <FileUpload label="Cover Image" type="image" uploading={uploadingImage} preview={formData.image_url} onUpload={f => uploadFile(f, 'images', setUploadingImage, 'image_url')} onDelete={() => deleteFile('image_url')} />
 
           {/* Audio Files Section */}
           <div className="border border-white/10 rounded-xl p-4">
@@ -731,22 +758,22 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
               {/* Tagged Preview */}
               <div>
                 <label className="block text-xs text-gray-400 mb-2">Tagged Preview <span className="text-gray-600">(plays on website with voice tag)</span></label>
-                <FileUpload type="audio" uploading={uploadingTaggedAudio} preview={formData.audio_url} onUpload={f => uploadFile(f, 'beats-tagged', setUploadingTaggedAudio, 'audio_url')} />
+                <FileUpload type="audio" uploading={uploadingTaggedAudio} preview={formData.audio_url} onUpload={f => uploadFile(f, 'beats-tagged', setUploadingTaggedAudio, 'audio_url')} onDelete={() => deleteFile('audio_url')} />
               </div>
               {/* Untagged MP3 */}
               <div>
                 <label className="block text-xs text-gray-400 mb-2">Untagged MP3 <span className="text-gray-600">(customer downloads this)</span></label>
-                <FileUpload type="audio" uploading={uploadingMp3} preview={formData.mp3_url} onUpload={f => uploadFile(f, 'beats-mp3', setUploadingMp3, 'mp3_url')} />
+                <FileUpload type="audio" uploading={uploadingMp3} preview={formData.mp3_url} onUpload={f => uploadFile(f, 'beats-mp3', setUploadingMp3, 'mp3_url')} onDelete={() => deleteFile('mp3_url')} />
               </div>
               {/* WAV */}
               <div>
                 <label className="block text-xs text-gray-400 mb-2">WAV File <span className="text-gray-600">(for WAV/Unlimited/Exclusive)</span></label>
-                <FileUpload type="audio" uploading={uploadingWav} preview={formData.wav_url} onUpload={f => uploadFile(f, 'beats-wav', setUploadingWav, 'wav_url')} />
+                <FileUpload type="audio" uploading={uploadingWav} preview={formData.wav_url} onUpload={f => uploadFile(f, 'beats-wav', setUploadingWav, 'wav_url')} onDelete={() => deleteFile('wav_url')} />
               </div>
               {/* Stems */}
               <div>
                 <label className="block text-xs text-gray-400 mb-2">Stems ZIP <span className="text-gray-600">(for Unlimited/Exclusive only)</span></label>
-                <FileUpload type="file" uploading={uploadingStems} preview={formData.stems_url} onUpload={f => uploadFile(f, 'beats-stems', setUploadingStems, 'stems_url')} />
+                <FileUpload type="file" uploading={uploadingStems} preview={formData.stems_url} onUpload={f => uploadFile(f, 'beats-stems', setUploadingStems, 'stems_url')} onDelete={() => deleteFile('stems_url')} />
               </div>
             </div>
           </div>
@@ -760,10 +787,23 @@ function BeatsManager({ beats, onRefresh, formatPrice, isMobile }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs md:text-sm text-gray-400 mb-2">Prices (EUR)</label>
+            <label className="block text-xs md:text-sm text-gray-400 mb-2">License Prices (EUR) <span className="text-gray-600">- leave empty to disable license</span></label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-              {[['MP3', 'price_mp3'], ['WAV', 'price_wav'], ['Unlimited', 'price_stems'], ['Exclusive', 'price_exclusive']].map(([l, k]) => (
-                <div key={k}><p className="text-[10px] md:text-xs text-gray-500 mb-1">{l}</p><input type="number" step="0.01" value={formData[k]} onChange={e => setFormData({ ...formData, [k]: parseFloat(e.target.value) || 0 })} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm" /></div>
+              {[['MP3', 'price_mp3'], ['WAV', 'price_wav'], ['Stems', 'price_stems'], ['Exclusive', 'price_exclusive']].map(([l, k]) => (
+                <div key={k} className={`p-2 rounded-lg ${formData[k] != null && formData[k] !== '' ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/5 border border-white/10'}`}>
+                  <p className={`text-[10px] md:text-xs mb-1 ${formData[k] != null && formData[k] !== '' ? 'text-green-400' : 'text-gray-500'}`}>{l} {formData[k] != null && formData[k] !== '' ? '✓' : '(disabled)'}</p>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="—"
+                    value={formData[k] ?? ''}
+                    onChange={e => {
+                      const val = e.target.value
+                      setFormData({ ...formData, [k]: val === '' ? null : parseFloat(val) })
+                    }}
+                    className="w-full bg-transparent border-0 px-0 py-1 text-sm focus:outline-none focus:ring-0"
+                  />
+                </div>
               ))}
             </div>
           </div>
