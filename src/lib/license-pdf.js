@@ -227,7 +227,7 @@ export async function generateLicensePDF({
   const pubText = 'This license includes a 20% publishing split. The Producer (TR Productions / Timo Romeo) retains 20% of the publishing/composition rights. The Licensee receives 80% of the publishing rights' + (exclusive ? ' and full ownership of the master recording.' : '.')
   const pubLines = doc.splitTextToSize(pubText, contentWidth)
   doc.text(pubLines, margin, y)
-  y += pubLines.length * 4 + 2
+  y += pubLines.length * 4 + 3
 
   doc.setTextColor(...purple)
   doc.setFont('helvetica', 'bold')
@@ -240,10 +240,17 @@ export async function generateLicensePDF({
   } else {
     doc.text('• License Type: Non-Exclusive', margin, y)
   }
+
+  y += 8
   doc.setTextColor(...dark)
   doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  const proText = 'For royalty registration: Add "Timo Romeo" as co-writer with 20% share when registering your song with your PRO (ASCAP, BMI, GEMA, etc.). Producer is registered with SACEM Luxembourg.'
+  const proLines = doc.splitTextToSize(proText, contentWidth)
+  doc.text(proLines, margin, y)
+  y += proLines.length * 3.5 + 5
 
-  y += 10
+  doc.setFontSize(9)
 
   // Section 6: Restrictions
   doc.setFontSize(10)

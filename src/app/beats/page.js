@@ -97,9 +97,31 @@ export default function BeatsPage() {
   const formatTime = (s) => isNaN(s) || s === Infinity ? '0:00' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
   const formatPrice = (p) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(p)
 
+  // Check if a license is available (has price AND required files)
+  const isLicenseAvailable = (beat, licenseId) => {
+    const hasFile = (url) => url && url.trim() !== ''
+    switch (licenseId) {
+      case 'mp3':
+        return beat.price_mp3 != null && beat.price_mp3 > 0 && hasFile(beat.mp3_url)
+      case 'wav':
+        return beat.price_wav != null && beat.price_wav > 0 && hasFile(beat.wav_url)
+      case 'unlimited': // Stems
+        return beat.price_stems != null && beat.price_stems > 0 && hasFile(beat.stems_url)
+      case 'exclusive':
+        // Exclusive needs price and at least one downloadable file
+        return beat.price_exclusive != null && beat.price_exclusive > 0 && (hasFile(beat.mp3_url) || hasFile(beat.wav_url))
+      default:
+        return false
+    }
+  }
+
   const getLowestPrice = (beat) => {
-    const prices = [beat.price_mp3, beat.price_wav, beat.price_stems, beat.price_exclusive].filter(p => p != null && p > 0)
-    return prices.length > 0 ? Math.min(...prices) : null
+    const availablePrices = []
+    if (isLicenseAvailable(beat, 'mp3')) availablePrices.push(beat.price_mp3)
+    if (isLicenseAvailable(beat, 'wav')) availablePrices.push(beat.price_wav)
+    if (isLicenseAvailable(beat, 'unlimited')) availablePrices.push(beat.price_stems)
+    if (isLicenseAvailable(beat, 'exclusive')) availablePrices.push(beat.price_exclusive)
+    return availablePrices.length > 0 ? Math.min(...availablePrices) : null
   }
 
   const handlePlay = (beat) => {
@@ -460,7 +482,7 @@ export default function BeatsPage() {
               {/* Licenses */}
               <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-6">Select License</h3>
               {(() => {
-                const availableLicenses = licenses.filter(lic => selectedBeat[lic.priceKey] != null && selectedBeat[lic.priceKey] > 0)
+                const availableLicenses = licenses.filter(lic => isLicenseAvailable(selectedBeat, lic.id))
 
                 if (availableLicenses.length === 0) {
                   return (
