@@ -95,7 +95,12 @@ export default function BeatsPage() {
   })
 
   const formatTime = (s) => isNaN(s) || s === Infinity ? '0:00' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
-  const formatPrice = (p) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(p || 29.99)
+  const formatPrice = (p) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(p)
+
+  const getLowestPrice = (beat) => {
+    const prices = [beat.price_mp3, beat.price_wav, beat.price_stems, beat.price_exclusive].filter(p => p != null && p > 0)
+    return prices.length > 0 ? Math.min(...prices) : null
+  }
 
   const handlePlay = (beat) => {
     if (!beat.audio_url) return
@@ -341,7 +346,14 @@ export default function BeatsPage() {
                       
                       <div className="flex items-center justify-between">
                         <span className={`font-bold text-sm md:text-base ${beat.is_sold ? 'text-gray-500 line-through' : ''}`}>
-                          {formatPrice(beat.price_mp3)}
+                          {getLowestPrice(beat) ? (
+                            <>
+                              <span className="text-gray-500 text-xs font-normal">from </span>
+                              {formatPrice(getLowestPrice(beat))}
+                            </>
+                          ) : (
+                            <span className="text-gray-400">Contact</span>
+                          )}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {/* Mobile Actions */}
@@ -357,11 +369,16 @@ export default function BeatsPage() {
                             <span className="bg-gray-600 text-gray-300 px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium cursor-not-allowed">
                               Sold
                             </span>
-                          ) : (
+                          ) : getLowestPrice(beat) ? (
                             <button onClick={() => handleBuyClick(beat)}
                               className="bg-white text-black px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-gray-200 transition">
                               Buy
                             </button>
+                          ) : (
+                            <a href="mailto:contact@trproductions.de"
+                              className="bg-white/10 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-white/20 transition">
+                              Contact
+                            </a>
                           )}
                         </div>
                       </div>
@@ -442,45 +459,61 @@ export default function BeatsPage() {
 
               {/* Licenses */}
               <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-6">Select License</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-5 md:mb-8">
-                {licenses.map(lic => {
-                  const price = selectedBeat[lic.priceKey] || 29.99
-                  const isExclusiveSold = lic.id === 'exclusive' && selectedBeat.is_sold
-                  const isDisabled = isExclusiveSold
+              {(() => {
+                const availableLicenses = licenses.filter(lic => selectedBeat[lic.priceKey] != null && selectedBeat[lic.priceKey] > 0)
 
+                if (availableLicenses.length === 0) {
                   return (
-                    <div
-                      key={lic.id}
-                      onClick={() => !isDisabled && setSelectedLicense(lic)}
-                      className={`relative p-3 md:p-5 rounded-xl md:rounded-2xl border transition-all ${
-                        isDisabled
-                          ? 'border-white/5 bg-white/[0.01] cursor-not-allowed opacity-50'
-                          : selectedLicense?.id === lic.id
-                          ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 cursor-pointer'
-                          : 'border-white/10 bg-white/[0.02] hover:border-white/20 cursor-pointer'
-                      } ${lic.highlight && !isDisabled ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}
-                    >
-                      {isExclusiveSold ? (
-                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Sold Out</span>
-                      ) : lic.highlight ? (
-                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Best Value</span>
-                      ) : null}
-                      <h4 className="font-semibold text-xs md:text-base mb-0.5 md:mb-1">{lic.name}</h4>
-                      <p className={`text-base md:text-2xl font-bold mb-2 md:mb-4 ${isDisabled ? 'line-through text-gray-500' : ''}`}>
-                        {formatPrice(price)}
-                      </p>
-                      <ul className="space-y-1 md:space-y-2 hidden md:block">
-                        {lic.features.map((f, i) => (
-                          <li key={i} className={`text-xs flex items-start gap-2 ${isDisabled ? 'text-gray-600' : 'text-gray-400'}`}>
-                            <span className={isDisabled ? 'text-gray-600' : 'text-[#8B5CF6]'}>✓</span>
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center mb-5 md:mb-8">
+                      <span className="text-3xl mb-3 block">🚫</span>
+                      <p className="text-gray-400">No licenses available for this beat.</p>
+                      <p className="text-gray-500 text-sm mt-1">Please contact us for pricing.</p>
                     </div>
                   )
-                })}
-              </div>
+                }
+
+                return (
+                  <div className={`grid gap-2 md:gap-4 mb-5 md:mb-8 ${availableLicenses.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : availableLicenses.length === 2 ? 'grid-cols-2 max-w-lg mx-auto' : availableLicenses.length === 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                    {availableLicenses.map(lic => {
+                      const price = selectedBeat[lic.priceKey]
+                      const isExclusiveSold = lic.id === 'exclusive' && selectedBeat.is_sold
+                      const isDisabled = isExclusiveSold
+
+                      return (
+                        <div
+                          key={lic.id}
+                          onClick={() => !isDisabled && setSelectedLicense(lic)}
+                          className={`relative p-3 md:p-5 rounded-xl md:rounded-2xl border transition-all ${
+                            isDisabled
+                              ? 'border-white/5 bg-white/[0.01] cursor-not-allowed opacity-50'
+                              : selectedLicense?.id === lic.id
+                              ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 cursor-pointer'
+                              : 'border-white/10 bg-white/[0.02] hover:border-white/20 cursor-pointer'
+                          } ${lic.highlight && !isDisabled ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}
+                        >
+                          {isExclusiveSold ? (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Sold Out</span>
+                          ) : lic.highlight ? (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">Best Value</span>
+                          ) : null}
+                          <h4 className="font-semibold text-xs md:text-base mb-0.5 md:mb-1">{lic.name}</h4>
+                          <p className={`text-base md:text-2xl font-bold mb-2 md:mb-4 ${isDisabled ? 'line-through text-gray-500' : ''}`}>
+                            {formatPrice(price)}
+                          </p>
+                          <ul className="space-y-1 md:space-y-2 hidden md:block">
+                            {lic.features.map((f, i) => (
+                              <li key={i} className={`text-xs flex items-start gap-2 ${isDisabled ? 'text-gray-600' : 'text-gray-400'}`}>
+                                <span className={isDisabled ? 'text-gray-600' : 'text-[#8B5CF6]'}>✓</span>
+                                {f}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
 
               {/* Email Input & Checkout */}
               <div className="pt-4 md:pt-6 border-t border-white/10">
@@ -571,7 +604,11 @@ export default function BeatsPage() {
                 <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0" onClick={() => handlePlay(currentBeat)}>
                   {isPlaying ? <span className="text-black text-xs">❚❚</span> : <span className="text-black text-xs ml-0.5">▶</span>}
                 </button>
-                <button onClick={() => handleBuyClick(currentBeat)} className="bg-[#8B5CF6] px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0">Buy</button>
+                {getLowestPrice(currentBeat) ? (
+                  <button onClick={() => handleBuyClick(currentBeat)} className="bg-[#8B5CF6] px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0">Buy</button>
+                ) : (
+                  <a href="mailto:contact@trproductions.de" className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0">Contact</a>
+                )}
               </div>
             </div>
 
@@ -609,8 +646,17 @@ export default function BeatsPage() {
               </div>
 
               <div className="flex items-center gap-4 flex-shrink-0">
-                <span className="font-bold">{formatPrice(currentBeat.price_mp3)}</span>
-                <button onClick={() => handleBuyClick(currentBeat)} className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-5 py-2 rounded-full text-sm font-medium transition">Buy Now</button>
+                {getLowestPrice(currentBeat) ? (
+                  <>
+                    <span className="font-bold">
+                      <span className="text-gray-500 text-xs font-normal">from </span>
+                      {formatPrice(getLowestPrice(currentBeat))}
+                    </span>
+                    <button onClick={() => handleBuyClick(currentBeat)} className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-5 py-2 rounded-full text-sm font-medium transition">Buy Now</button>
+                  </>
+                ) : (
+                  <a href="mailto:contact@trproductions.de" className="bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full text-sm font-medium transition">Contact</a>
+                )}
               </div>
             </div>
           </div>
