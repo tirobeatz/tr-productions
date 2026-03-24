@@ -29,10 +29,10 @@ export async function POST(request) {
 
     // Route to service checkout if serviceType is present
     if (body.serviceType) {
-      return handleServiceCheckout(stripe, body)
+      return await handleServiceCheckout(stripe, body)
     }
 
-    return handleBeatCheckout(stripe, supabaseAdmin, body)
+    return await handleBeatCheckout(stripe, supabaseAdmin, body)
   } catch (error) {
     console.error('Checkout error:', error)
     return NextResponse.json(
