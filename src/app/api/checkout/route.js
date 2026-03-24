@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { stripe, LICENSE_DETAILS } from '@/lib/stripe'
-import { supabaseAdmin } from '@/lib/supabase-server'
 
 function getSiteUrl() {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL
@@ -10,15 +8,31 @@ function getSiteUrl() {
 
 export async function POST(request) {
   try {
+    // Check env vars before importing anything
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json({ error: 'Stripe is not configured (missing STRIPE_SECRET_KEY)' }, { status: 500 })
+    }
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 })
+    }
+
+    // Dynamic imports to avoid module-level crashes
+    const Stripe = (await import('stripe')).default
+    const { createClient } = await import('@supabase/supabase-js')
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' })
+    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
     const body = await request.json()
 
     // Route to service checkout if serviceType is present
     if (body.serviceType) {
-      return handleServiceCheckout(body)
+      return handleServiceCheckout(stripe, body)
     }
 
-    // Original beat checkout flow
-    return handleBeatCheckout(body)
+    return handleBeatCheckout(stripe, supabaseAdmin, body)
   } catch (error) {
     console.error('Checkout error:', error)
     return NextResponse.json(
@@ -28,8 +42,14 @@ export async function POST(request) {
   }
 }
 
-// Beat purchase checkout (existing flow)
-async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
+const LICENSE_DETAILS = {
+  mp3: { name: 'MP3 Lease', description: 'MP3 file with up to 50,000 streams. 20% publishing split to producer.' },
+  wav: { name: 'WAV Lease', description: 'WAV + MP3 files with up to 100,000 streams. 20% publishing split to producer.' },
+  unlimited: { name: 'Stems License', description: 'WAV + MP3 + Stems with up to 250,000 streams. 20% publishing split to producer.' },
+  exclusive: { name: 'Exclusive Rights', description: 'Full exclusive ownership. 20% publishing split to producer.' }
+}
+
+async function handleBeatCheckout(stripe, supabaseAdmin, { beatId, licenseType, customerEmail }) {
   if (!beatId || !licenseType || !customerEmail) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -59,7 +79,6 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
     return NextResponse.json({ error: 'Price not available for this license' }, { status: 400 })
   }
 
-  // For exclusive beats, check availability to prevent race condition
   if (licenseType === 'exclusive') {
     const { data: reservedBeat } = await supabaseAdmin
       .from('beats')
@@ -99,18 +118,15 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
     }
   }
 
-  // Only add image if it's a valid https URL
   if (beat.image_url && beat.image_url.startsWith('https://')) {
     sessionConfig.line_items[0].price_data.product_data.images = [beat.image_url]
   }
 
   const session = await stripe.checkout.sessions.create(sessionConfig)
-
   return NextResponse.json({ sessionId: session.id, url: session.url })
 }
 
-// Service deposit checkout (mixing/mastering & studio)
-async function handleServiceCheckout({ serviceType, bookingId, customerEmail, totalPrice, serviceName }) {
+async function handleServiceCheckout(stripe, { serviceType, bookingId, customerEmail, totalPrice, serviceName }) {
   if (!serviceType || !bookingId || !customerEmail || !totalPrice) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -119,13 +135,8 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
     return NextResponse.json({ error: 'Invalid service type' }, { status: 400 })
   }
 
-  const depositAmount = Math.round(totalPrice / 2) // 50% deposit
+  const depositAmount = Math.round(totalPrice / 2)
   const siteUrl = getSiteUrl()
-
-  const descriptions = {
-    mix: 'Mix & Master - 50% deposit to confirm your booking. Remaining balance due upon delivery.',
-    studio: 'Studio Session - 50% deposit to confirm your booking. Remaining balance due on session day.'
-  }
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -135,7 +146,9 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
         currency: 'eur',
         product_data: {
           name: `${serviceName || (serviceType === 'mix' ? 'Mix & Master' : 'Studio Session')} - 50% Deposit`,
-          description: descriptions[serviceType],
+          description: serviceType === 'mix'
+            ? 'Mix & Master - 50% deposit. Remaining balance due upon delivery.'
+            : 'Studio Session - 50% deposit. Remaining balance due on session day.',
         },
         unit_amount: Math.round(depositAmount * 100),
       },
