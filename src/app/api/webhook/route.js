@@ -28,6 +28,18 @@ export async function POST(request) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object
 
+      // Idempotency check: skip if this Stripe session was already processed
+      const { data: existingOrder } = await supabaseAdmin
+        .from('orders')
+        .select('order_id')
+        .eq('stripe_session_id', session.id)
+        .single()
+
+      if (existingOrder) {
+        console.log(`Webhook already processed for session ${session.id}, skipping`)
+        return NextResponse.json({ received: true, duplicate: true })
+      }
+
       const beatId = session.metadata.beat_id
       const licenseType = session.metadata.license_type
       const customerEmail = session.customer_email || session.customer_details?.email

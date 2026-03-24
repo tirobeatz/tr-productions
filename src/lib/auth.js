@@ -89,7 +89,9 @@ export async function inviteAdmin(email, name, role = 'admin') {
   if (!callerIsAdmin) return { error: 'Unauthorized' }
   
   // Generate a temporary password (user should reset on first login)
-  const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  const tempPassword = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').slice(0, 16) + 'A1!'
   
   // Create auth user
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({

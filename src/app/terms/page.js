@@ -152,7 +152,7 @@ export default function TermsPage() {
                   </ol>
                 </div>
                 <p className="text-sm text-gray-500 mb-4">
-                  <strong className="text-white">Producer PRO Info:</strong> Timo Romeo is registered with GEMA (Germany).
+                  <strong className="text-white">Producer PRO Info:</strong> Timo Romeo is registered with SACEM Luxembourg.
                   IPI number and full registration details will be included in your license PDF upon purchase.
                 </p>
 

@@ -1,6 +1,10 @@
 import crypto from 'crypto'
 
-const SECRET = process.env.DOWNLOAD_TOKEN_SECRET || 'tr-productions-secret-key'
+const SECRET = process.env.DOWNLOAD_TOKEN_SECRET
+
+if (!SECRET) {
+  throw new Error('DOWNLOAD_TOKEN_SECRET environment variable is required. Set it in your .env file.')
+}
 
 // Create a secure download token
 export function createDownloadToken(beatId, licenseType, orderId) {
