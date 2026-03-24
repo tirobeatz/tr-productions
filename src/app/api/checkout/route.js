@@ -1,19 +1,15 @@
 import { NextResponse } from 'next/server'
-import { headers } from 'next/headers'
 import { stripe, LICENSE_DETAILS } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { rateLimit } from '@/lib/rate-limit'
+
+function getSiteUrl() {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'https://trproductions.de'
+}
 
 export async function POST(request) {
   try {
-    const headersList = await headers()
-    const ip = headersList.get('x-forwarded-for') || 'unknown'
-
-    const { limited } = rateLimit({ key: `checkout:${ip}`, limit: 5, window: 60000 })
-    if (limited) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-    }
-
     const body = await request.json()
 
     // Route to service checkout if serviceType is present
@@ -24,20 +20,12 @@ export async function POST(request) {
     // Original beat checkout flow
     return handleBeatCheckout(body)
   } catch (error) {
-    console.error('Checkout error:', error?.message || error)
+    console.error('Checkout error:', error)
     return NextResponse.json(
       { error: error?.message || 'Failed to create checkout session' },
       { status: 500 }
     )
   }
-}
-
-function getSiteUrl() {
-  const url = process.env.NEXT_PUBLIC_SITE_URL
-  if (url) return url
-  // Fallback: check VERCEL_URL
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return 'https://trproductions.de'
 }
 
 // Beat purchase checkout (existing flow)
@@ -71,10 +59,9 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
     return NextResponse.json({ error: 'Price not available for this license' }, { status: 400 })
   }
 
-  // For exclusive beats, attempt atomic reservation to prevent race condition
-  // This check will be validated again in the webhook handler with a final atomic update
+  // For exclusive beats, check availability to prevent race condition
   if (licenseType === 'exclusive') {
-    const { data: reservedBeat, error: reserveError } = await supabaseAdmin
+    const { data: reservedBeat } = await supabaseAdmin
       .from('beats')
       .select('id')
       .eq('id', beatId)
@@ -86,7 +73,9 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
     }
   }
 
-  const session = await stripe.checkout.sessions.create({
+  const siteUrl = getSiteUrl()
+
+  const sessionConfig = {
     payment_method_types: ['card'],
     customer_email: customerEmail,
     line_items: [{
@@ -95,21 +84,27 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
         product_data: {
           name: `${beat.title} - ${LICENSE_DETAILS[licenseType].name}`,
           description: LICENSE_DETAILS[licenseType].description,
-          ...(beat.image_url && beat.image_url.startsWith('https://') ? { images: [beat.image_url] } : {}),
         },
         unit_amount: Math.round(price * 100),
       },
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${getSiteUrl()}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${getSiteUrl()}/beats`,
+    success_url: `${siteUrl}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${siteUrl}/beats`,
     metadata: {
       beat_id: beatId,
       license_type: licenseType,
       beat_title: beat.title
     }
-  })
+  }
+
+  // Only add image if it's a valid https URL
+  if (beat.image_url && beat.image_url.startsWith('https://')) {
+    sessionConfig.line_items[0].price_data.product_data.images = [beat.image_url]
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionConfig)
 
   return NextResponse.json({ sessionId: session.id, url: session.url })
 }
@@ -125,10 +120,11 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
   }
 
   const depositAmount = Math.round(totalPrice / 2) // 50% deposit
+  const siteUrl = getSiteUrl()
 
   const descriptions = {
-    mix: 'Mix & Master — 50% deposit to confirm your booking. Remaining balance due upon delivery.',
-    studio: 'Studio Session — 50% deposit to confirm your booking. Remaining balance due on session day.'
+    mix: 'Mix & Master - 50% deposit to confirm your booking. Remaining balance due upon delivery.',
+    studio: 'Studio Session - 50% deposit to confirm your booking. Remaining balance due on session day.'
   }
 
   const session = await stripe.checkout.sessions.create({
@@ -138,7 +134,7 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
       price_data: {
         currency: 'eur',
         product_data: {
-          name: `${serviceName || (serviceType === 'mix' ? 'Mix & Master' : 'Studio Session')} — 50% Deposit`,
+          name: `${serviceName || (serviceType === 'mix' ? 'Mix & Master' : 'Studio Session')} - 50% Deposit`,
           description: descriptions[serviceType],
         },
         unit_amount: Math.round(depositAmount * 100),
@@ -146,8 +142,8 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${getSiteUrl()}/booking/success?type=${serviceType}&id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${getSiteUrl()}/${serviceType === 'mix' ? 'mixing' : 'studio'}`,
+    success_url: `${siteUrl}/booking/success?type=${serviceType}&id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${siteUrl}/${serviceType === 'mix' ? 'mixing' : 'studio'}`,
     metadata: {
       service_type: serviceType,
       booking_id: bookingId,

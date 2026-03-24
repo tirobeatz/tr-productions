@@ -223,10 +223,16 @@ export default function BeatsPage() {
         })
       })
 
-      const data = await response.json()
+      const text = await response.text()
+      let data
+      try { data = JSON.parse(text) } catch { throw new Error('Server error. Please try again.') }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      if (!data.url) {
+        throw new Error('No checkout URL returned. Please try again.')
       }
 
       // Redirect to Stripe Checkout
