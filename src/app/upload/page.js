@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 B'
@@ -50,18 +51,36 @@ function UploadContent() {
     setUploading(prev => [...prev, { id, name: file.name, size: file.size, progress: 0 }])
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('bookingId', bookingId)
-      formData.append('type', serviceType)
-
-      const res = await fetch('/api/upload-files', { method: 'POST', body: formData })
+      // Step 1: Get a signed upload URL from our API
+      const res = await fetch('/api/upload-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId,
+          serviceType,
+          fileName: file.name,
+          contentType: file.type || 'application/octet-stream'
+        })
+      })
       const data = await res.json()
-
       if (data.error) throw new Error(data.error)
 
+      // Step 2: Upload file directly to Supabase using the signed URL token
+      setUploading(prev => prev.map(u => u.id === id ? { ...u, progress: 10 } : u))
+
+      const { error: uploadError } = await supabase.storage
+        .from('client-uploads')
+        .uploadToSignedUrl(data.path, data.token, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true
+        })
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Upload failed')
+      }
+
       setUploading(prev => prev.filter(u => u.id !== id))
-      setFiles(prev => [...prev, { name: data.file.name, size: data.file.size, created: new Date().toISOString() }])
+      setFiles(prev => [...prev, { name: data.fileName, size: file.size, created: new Date().toISOString() }])
     } catch (err) {
       setUploading(prev => prev.map(u => u.id === id ? { ...u, error: err.message } : u))
     }
