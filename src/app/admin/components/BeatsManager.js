@@ -142,7 +142,7 @@ export default function BeatsManager({ beats, onRefresh, formatPrice, isMobile }
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 bg-[#8B5CF6]/20 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
                   {b.image_url ? (
-                    <Image src={b.image_url} alt="" fill className="object-cover" sizes="48px" unoptimized />
+                    <Image src={b.image_url} alt="" fill className="object-cover" sizes="48px" />
                   ) : <span>🎵</span>}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -202,7 +202,7 @@ export default function BeatsManager({ beats, onRefresh, formatPrice, isMobile }
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#8B5CF6]/20 rounded-lg flex items-center justify-center overflow-hidden relative">
                           {b.image_url ? (
-                            <Image src={b.image_url} alt="" fill className="object-cover" sizes="40px" unoptimized />
+                            <Image src={b.image_url} alt="" fill className="object-cover" sizes="40px" />
                           ) : <span>🎵</span>}
                         </div>
                         <div>

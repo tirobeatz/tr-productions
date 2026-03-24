@@ -414,7 +414,6 @@ export default function Home() {
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
                         sizes="(max-width: 640px) 280px, 300px"
-                        unoptimized
                       />
                     )}
 
@@ -568,7 +567,6 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-110"
                           sizes="(max-width: 768px) 50vw, 25vw"
-                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

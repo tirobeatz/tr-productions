@@ -173,7 +173,6 @@ export default function ReleasesManager({ releases, onRefresh, isMobile }) {
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 50vw, 25vw"
-                  unoptimized
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-4xl">🎵</div>
@@ -327,7 +326,6 @@ export default function ReleasesManager({ releases, onRefresh, isMobile }) {
                       alt={formData.title}
                       fill
                       className="object-cover"
-                      unoptimized
                     />
                   </div>
                 )}

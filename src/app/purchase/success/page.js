@@ -132,7 +132,6 @@ function SuccessContent() {
                         fill
                         className="object-cover"
                         sizes="80px"
-                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-3xl">🎵</div>

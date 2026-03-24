@@ -310,7 +310,7 @@ export default function BeatsPage() {
                     {/* Cover */}
                     <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] relative cursor-pointer overflow-hidden" onClick={() => handlePlay(beat)}>
                       {beat.image_url ? (
-                        <Image src={beat.image_url} alt={beat.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" unoptimized />
+                        <Image src={beat.image_url} alt={beat.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center"><span className="text-3xl md:text-5xl opacity-30">🎵</span></div>
                       )}
@@ -471,7 +471,7 @@ export default function BeatsPage() {
               {/* Beat Info */}
               <div className="flex items-center gap-3 md:gap-6 mb-5 md:mb-8 pb-5 md:pb-8 border-b border-white/10">
                 <div className="w-14 h-14 md:w-24 md:h-24 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg md:rounded-xl flex-shrink-0 overflow-hidden relative">
-                  {selectedBeat.image_url ? <Image src={selectedBeat.image_url} alt={selectedBeat.title} fill className="object-cover" sizes="96px" unoptimized /> : <div className="w-full h-full flex items-center justify-center"><span className="text-xl md:text-4xl">🎵</span></div>}
+                  {selectedBeat.image_url ? <Image src={selectedBeat.image_url} alt={selectedBeat.title} fill className="object-cover" sizes="96px" /> : <div className="w-full h-full flex items-center justify-center"><span className="text-xl md:text-4xl">🎵</span></div>}
                 </div>
                 <div>
                   <h2 className="text-lg md:text-2xl font-bold mb-1">{selectedBeat.title}</h2>
@@ -616,7 +616,7 @@ export default function BeatsPage() {
             {/* Mobile Layout */}
             <div className="flex md:hidden items-center gap-3">
               <div className="w-11 h-11 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex-shrink-0 overflow-hidden relative">
-                {currentBeat.image_url ? <Image src={currentBeat.image_url} alt={currentBeat.title} fill className="object-cover" sizes="44px" unoptimized /> : <div className="w-full h-full flex items-center justify-center"><span className="text-base">🎵</span></div>}
+                {currentBeat.image_url ? <Image src={currentBeat.image_url} alt={currentBeat.title} fill className="object-cover" sizes="44px" /> : <div className="w-full h-full flex items-center justify-center"><span className="text-base">🎵</span></div>}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-sm truncate">{currentBeat.title}</h4>
@@ -638,7 +638,7 @@ export default function BeatsPage() {
             <div className="hidden md:flex items-center justify-between gap-6">
               <div className="flex items-center gap-4 min-w-0 w-1/4">
                 <div className="w-12 h-12 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg flex-shrink-0 overflow-hidden relative">
-                  {currentBeat.image_url ? <Image src={currentBeat.image_url} alt={currentBeat.title} fill className="object-cover" sizes="48px" unoptimized /> : <span className="text-lg flex items-center justify-center w-full h-full">🎵</span>}
+                  {currentBeat.image_url ? <Image src={currentBeat.image_url} alt={currentBeat.title} fill className="object-cover" sizes="48px" /> : <span className="text-lg flex items-center justify-center w-full h-full">🎵</span>}
                 </div>
                 <div className="min-w-0">
                   <h4 className="font-semibold text-sm truncate">{currentBeat.title}</h4>

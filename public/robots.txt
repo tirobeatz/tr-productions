@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /upload
+Disallow: /purchase/
+Disallow: /booking/
+
+Sitemap: https://www.trproductions.de/sitemap.xml
