@@ -304,9 +304,9 @@ export default function BeatsPage() {
           ) : (
             <>
               {/* Grid */}
-              <StaggerChildren className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6" stagger={0.05}>
+              <StaggerChildren className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6" stagger={0.05}>
                 {filteredBeats.map((beat) => (
-                  <BeatTiltCard key={beat.id} className="group rounded-xl md:rounded-2xl overflow-hidden">
+                  <BeatTiltCard key={beat.id} className="group overflow-hidden">
                     {/* Cover */}
                     <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] relative cursor-pointer overflow-hidden" onClick={() => handlePlay(beat)}>
                       {beat.image_url ? (
@@ -352,57 +352,67 @@ export default function BeatsPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="p-2.5 md:p-5">
-                      <div className="flex items-start justify-between mb-1 md:mb-2 gap-1">
-                        <h3 className="font-semibold text-sm md:text-base truncate">{beat.title}</h3>
-                        <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full flex-shrink-0">{beat.genre}</span>
+                    <div className="p-2 md:p-5">
+                      {/* Title row */}
+                      <h3 className="font-semibold text-xs md:text-base truncate mb-0.5 md:mb-1">{beat.title}</h3>
+
+                      {/* Genre + BPM row */}
+                      <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                        <span className="text-[10px] md:text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full flex-shrink-0">{beat.genre}</span>
+                        <span className="text-gray-500 text-[10px] md:text-sm">{beat.bpm} BPM</span>
                       </div>
-                      <p className="text-gray-500 text-xs md:text-sm mb-2 md:mb-3">{beat.bpm} BPM • {beat.key}</p>
-                      
+
                       {/* Tags - Desktop */}
                       {beat.tags?.length > 0 && (
                         <div className="hidden md:flex flex-wrap gap-1 mb-4">
                           {beat.tags.slice(0, 3).map(tag => <span key={tag} className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">#{tag}</span>)}
                         </div>
                       )}
-                      
+
+                      {/* Price row */}
                       <div className="flex items-center justify-between">
-                        <span className={`font-bold text-sm md:text-base ${beat.is_sold ? 'text-gray-500 line-through' : ''}`}>
+                        <span className={`font-bold text-xs md:text-base ${beat.is_sold ? 'text-gray-500 line-through' : ''}`}>
                           {getLowestPrice(beat) ? (
                             <>
-                              <span className="text-gray-500 text-xs font-normal">from </span>
+                              <span className="text-gray-500 text-[10px] md:text-xs font-normal hidden md:inline">from </span>
                               {formatPrice(getLowestPrice(beat))}
                             </>
                           ) : (
-                            <span className="text-gray-400">Contact</span>
+                            <span className="text-gray-400 text-[10px] md:text-sm">Contact</span>
                           )}
                         </span>
-                        <div className="flex items-center gap-1">
-                          {/* Mobile Actions */}
-                          <button onClick={(e) => { e.stopPropagation(); toggleFavorite(beat.id) }}
-                            className={`w-9 h-9 md:hidden rounded-full flex items-center justify-center transition ${favorites.includes(beat.id) ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-gray-400'}`}>
-                            <span className="text-xs">{favorites.includes(beat.id) ? '♥' : '♡'}</span>
+                        {beat.is_sold ? (
+                          <span className="bg-gray-600 text-gray-300 px-2 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium cursor-not-allowed">
+                            Sold
+                          </span>
+                        ) : getLowestPrice(beat) ? (
+                          <button onClick={() => handleBuyClick(beat)}
+                            className="bg-white text-black px-2.5 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-gray-200 transition">
+                            Buy
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); openNotepad(beat) }}
-                            className="w-9 h-9 md:hidden rounded-full bg-white/5 text-gray-400 flex items-center justify-center">
-                            <span className="text-xs">✎</span>
-                          </button>
-                          {beat.is_sold ? (
-                            <span className="bg-gray-600 text-gray-300 px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium cursor-not-allowed">
-                              Sold
-                            </span>
-                          ) : getLowestPrice(beat) ? (
-                            <button onClick={() => handleBuyClick(beat)}
-                              className="bg-white text-black px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition">
-                              Buy
-                            </button>
-                          ) : (
-                            <a href="mailto:contact@trproductions.de"
-                              className="bg-white/10 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs font-medium hover:bg-white/20 transition">
-                              Contact
-                            </a>
-                          )}
-                        </div>
+                        ) : (
+                          <a href="mailto:contact@trproductions.de"
+                            className="bg-white/10 text-white px-2.5 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-white/20 transition">
+                            Contact
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Mobile action buttons - separate row */}
+                      <div className="flex items-center gap-1 mt-1.5 md:hidden">
+                        <button onClick={(e) => { e.stopPropagation(); toggleFavorite(beat.id) }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition ${favorites.includes(beat.id) ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-gray-400'}`}>
+                          <span className="text-[10px]">{favorites.includes(beat.id) ? '♥' : '♡'}</span>
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleShare(beat) }}
+                          className="w-7 h-7 rounded-full bg-white/5 text-gray-400 flex items-center justify-center relative">
+                          <span className="text-[10px]">↗</span>
+                          {showCopied === beat.id && <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">Copied!</span>}
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); openNotepad(beat) }}
+                          className="w-7 h-7 rounded-full bg-white/5 text-gray-400 flex items-center justify-center">
+                          <span className="text-[10px]">✎</span>
+                        </button>
                       </div>
                     </div>
                   </BeatTiltCard>
