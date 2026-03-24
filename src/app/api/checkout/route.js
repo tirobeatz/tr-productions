@@ -114,7 +114,7 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/booking/success?type=${serviceType}&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/booking/success?type=${serviceType}&id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/${serviceType === 'mix' ? 'mixing' : 'studio'}`,
     metadata: {
       service_type: serviceType,

@@ -25,6 +25,8 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [sendingInvoice, setSendingInvoice] = useState(null)
   const [filter, setFilter] = useState('all')
+  const [expandedBooking, setExpandedBooking] = useState(null)
+  const [bookingFiles, setBookingFiles] = useState({})
 
   useEffect(() => {
     fetchBookings()
@@ -39,6 +41,43 @@ export default function BookingsPage() {
     setMixRequests(mixRes.data || [])
     setStudioBookings(studioRes.data || [])
     setLoading(false)
+  }
+
+  async function toggleFiles(bookingId) {
+    if (expandedBooking === bookingId) {
+      setExpandedBooking(null)
+      return
+    }
+    setExpandedBooking(bookingId)
+    if (!bookingFiles[bookingId]) {
+      try {
+        const res = await fetch(`/api/upload-files?bookingId=${bookingId}&type=${activeTab}`)
+        const data = await res.json()
+        setBookingFiles(prev => ({ ...prev, [bookingId]: data.files || [] }))
+      } catch {
+        setBookingFiles(prev => ({ ...prev, [bookingId]: [] }))
+      }
+    }
+  }
+
+  async function deleteUploadedFile(bookingId, fileName) {
+    if (!confirm(`Delete ${fileName}?`)) return
+    try {
+      const res = await fetch('/api/upload-files', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, serviceType: activeTab, fileName })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setBookingFiles(prev => ({
+          ...prev,
+          [bookingId]: prev[bookingId].filter(f => f.name !== fileName)
+        }))
+      }
+    } catch {
+      alert('Failed to delete file')
+    }
   }
 
   async function sendInvoice(serviceType, bookingId) {
@@ -207,6 +246,63 @@ export default function BookingsPage() {
                   {(booking.notes || booking.message) && (
                     <div className="mt-3 pt-3 border-t border-white/5">
                       <p className="text-sm text-gray-500">{booking.notes || booking.message}</p>
+                    </div>
+                  )}
+
+                  {/* Files & Upload Link */}
+                  {paymentStatus !== 'pending' && (
+                    <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-3">
+                      <button
+                        onClick={() => toggleFiles(booking.id)}
+                        className="text-sm text-[#8B5CF6] hover:text-[#A78BFA] transition-colors"
+                      >
+                        {expandedBooking === booking.id ? 'Hide Files' : 'View Files'}
+                      </button>
+                      <a
+                        href={`/upload?type=${activeTab}&id=${booking.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        Upload Link
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Expanded Files List */}
+                  {expandedBooking === booking.id && (
+                    <div className="mt-3 pt-3 border-t border-white/5">
+                      {!bookingFiles[booking.id] ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                          Loading files...
+                        </div>
+                      ) : bookingFiles[booking.id].length === 0 ? (
+                        <p className="text-sm text-gray-600">No files uploaded yet</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <p className="text-xs text-gray-500 mb-2">{bookingFiles[booking.id].length} file(s) uploaded</p>
+                          {bookingFiles[booking.id].map((f, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              <span className="text-[#8B5CF6]">&#9679;</span>
+                              <span className="text-gray-300 truncate flex-1">{f.name}</span>
+                              {f.size > 0 && <span className="text-gray-600 text-xs">{(f.size / 1024 / 1024).toFixed(1)}MB</span>}
+                              <a
+                                href={`/api/upload-files?type=${activeTab}&bookingId=${booking.id}&download=${encodeURIComponent(f.name)}`}
+                                className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] transition-colors"
+                              >
+                                Download
+                              </a>
+                              <button
+                                onClick={() => deleteUploadedFile(booking.id, f.name)}
+                                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

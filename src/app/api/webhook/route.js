@@ -211,7 +211,8 @@ async function handleServicePayment(session, metadata) {
           remainingAmount,
           totalPrice: booking.total_price.toFixed(2),
           serviceType,
-          booking
+          booking,
+          uploadUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/upload?type=${serviceType}&id=${bookingId}`
         })
       })
     } catch (emailError) {
@@ -331,16 +332,12 @@ function generateBeatEmailHTML({ beatTitle, licenseName, orderId, downloadUrl, e
   `)
 }
 
-function generateDepositEmailHTML({ serviceName, customerName, depositAmount, remainingAmount, totalPrice, serviceType, booking }) {
+function generateDepositEmailHTML({ serviceName, customerName, depositAmount, remainingAmount, totalPrice, serviceType, booking, uploadUrl }) {
   const details = serviceType === 'mix'
     ? `<tr><td style="color: #9CA3AF; font-size: 14px; padding: 8px 0;">Track</td><td style="color: #ffffff; font-size: 14px; padding: 8px 0; text-align: right; font-weight: 600;">${booking.track_name}</td></tr>
        <tr><td style="color: #9CA3AF; font-size: 14px; padding: 8px 0;">Rush Delivery</td><td style="color: #ffffff; font-size: 14px; padding: 8px 0; text-align: right;">${booking.rush_delivery ? 'Yes' : 'No'}</td></tr>`
     : `<tr><td style="color: #9CA3AF; font-size: 14px; padding: 8px 0;">Date</td><td style="color: #ffffff; font-size: 14px; padding: 8px 0; text-align: right; font-weight: 600;">${booking.date}</td></tr>
        <tr><td style="color: #9CA3AF; font-size: 14px; padding: 8px 0;">Hours</td><td style="color: #ffffff; font-size: 14px; padding: 8px 0; text-align: right;">${booking.hours?.length || 0}h</td></tr>`
-
-  const nextSteps = serviceType === 'mix'
-    ? 'Send your files to <strong style="color: #ffffff;">mixmaster@trproductions.de</strong> or via WeTransfer. We\'ll start working on your track!'
-    : 'See you at the studio! The remaining balance is due on your session day.'
 
   return emailWrapper(`
     <div style="text-align: center; margin-bottom: 32px;">
@@ -365,9 +362,19 @@ function generateDepositEmailHTML({ serviceName, customerName, depositAmount, re
         </tr>
       </table>
     </div>
+    ${uploadUrl ? `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <a href="${uploadUrl}" style="display: inline-block; background: #8B5CF6; color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 50px; font-weight: 600; font-size: 16px;">
+        Upload Your Files
+      </a>
+      <p style="color: #9CA3AF; font-size: 12px; margin-top: 12px;">
+        ${serviceType === 'mix' ? 'Upload your vocal stems, instrumentals, and reference tracks' : 'Upload reference tracks or beats for your session'}
+      </p>
+    </div>
+    ` : ''}
     <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 16px;">
       <p style="color: #A78BFA; font-size: 13px; margin: 0; line-height: 1.6;">
-        <strong>Next Steps:</strong> ${nextSteps}
+        <strong>What&apos;s next?</strong> ${serviceType === 'mix' ? 'Upload your files using the button above and we\'ll start working on your track!' : 'See you at the studio! The remaining balance is due on your session day.'}
       </p>
     </div>
   `)
