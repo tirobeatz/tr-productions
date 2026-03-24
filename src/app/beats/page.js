@@ -225,7 +225,7 @@ export default function BeatsPage() {
 
       const text = await response.text()
       let data
-      try { data = JSON.parse(text) } catch { throw new Error('Server error. Please try again.') }
+      try { data = JSON.parse(text) } catch { throw new Error(`Server error (${response.status}): ${text.slice(0, 200) || 'empty response'}`) }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create checkout')
