@@ -1,11 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, headers } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resend, FROM_EMAIL } from '@/lib/resend'
 import { generateInvoiceEmailHTML } from '@/lib/email-templates'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request) {
   try {
+    const headersList = await headers()
+    const ip = headersList.get('x-forwarded-for') || 'unknown'
+
+    const { limited } = rateLimit({ key: `invoice:${ip}`, limit: 3, window: 60000 })
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const { serviceType, bookingId } = await request.json()
 
     if (!serviceType || !bookingId) {

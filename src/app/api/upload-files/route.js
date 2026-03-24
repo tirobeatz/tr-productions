@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, headers } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { rateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,6 +80,14 @@ export async function GET(request) {
 // POST: Generate a signed upload URL (client uploads directly to Supabase)
 export async function POST(request) {
   try {
+    const headersList = await headers()
+    const ip = headersList.get('x-forwarded-for') || 'unknown'
+
+    const { limited } = rateLimit({ key: `upload:${ip}`, limit: 20, window: 60000 })
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const { bookingId, serviceType, fileName, contentType } = await request.json()
 
     if (!bookingId || !serviceType || !fileName) {

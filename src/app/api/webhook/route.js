@@ -41,6 +41,70 @@ export async function POST(request) {
       }
     }
 
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object
+      const paymentIntent = charge.payment_intent
+
+      // Check if this was a beat order
+      const { data: order } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .eq('stripe_payment_intent', paymentIntent)
+        .single()
+
+      if (order) {
+        // Mark order as refunded
+        await supabaseAdmin
+          .from('orders')
+          .update({ status: 'refunded' })
+          .eq('order_id', order.order_id)
+
+        // If exclusive beat, mark as available again
+        if (order.license_type === 'exclusive') {
+          await supabaseAdmin
+            .from('beats')
+            .update({ is_sold: false, sold_at: null, sold_to: null })
+            .eq('id', order.beat_id)
+        }
+      }
+
+      // Check if this was a service payment - find by payment intent in stripe session
+      // We need to look up the session by payment intent
+      try {
+        const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 1 })
+        if (sessions.data.length > 0) {
+          const sessionMeta = sessions.data[0].metadata
+          if (sessionMeta?.service_type) {
+            const table = sessionMeta.service_type === 'mix' ? 'mix_requests' : 'studio_bookings'
+            const bookingId = sessionMeta.booking_id
+
+            if (sessionMeta.payment_type === 'deposit') {
+              await supabaseAdmin.from(table).update({ payment_status: 'refunded', deposit_amount: 0 }).eq('id', bookingId)
+            } else if (sessionMeta.payment_type === 'final') {
+              await supabaseAdmin.from(table).update({ payment_status: 'deposit_paid' }).eq('id', bookingId)
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error processing service refund:', e)
+      }
+    }
+
+    if (event.type === 'checkout.session.expired') {
+      const session = event.data.object
+      const metadata = session.metadata || {}
+
+      // If an exclusive beat checkout expired, no action needed since we don't lock at checkout time
+      // If a service invoice expired, revert status back
+      if (metadata.service_type && metadata.payment_type === 'final') {
+        const table = metadata.service_type === 'mix' ? 'mix_requests' : 'studio_bookings'
+        await supabaseAdmin
+          .from(table)
+          .update({ payment_status: 'deposit_paid', payment_link_url: null })
+          .eq('id', metadata.booking_id)
+      }
+    }
+
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Webhook error:', error)
@@ -102,10 +166,27 @@ async function handleBeatPurchase(session, metadata) {
   }
 
   if (licenseType === 'exclusive') {
-    await supabaseAdmin
+    // Atomic update: only mark as sold if not already sold (prevents race condition)
+    const { data: updated, error: soldError } = await supabaseAdmin
       .from('beats')
       .update({ is_sold: true, sold_at: new Date().toISOString(), sold_to: customerEmail })
       .eq('id', beatId)
+      .eq('is_sold', false)
+      .select()
+      .single()
+
+    if (soldError || !updated) {
+      // Beat was already sold by another concurrent purchase - refund this payment
+      console.error(`Race condition detected: exclusive beat ${beatId} already sold, session ${session.id} needs refund`)
+
+      // Mark the order as needing refund so admin can handle it
+      await supabaseAdmin
+        .from('orders')
+        .update({ status: 'needs_refund', notes: `Race condition: beat was already sold to another customer` })
+        .eq('order_id', orderId)
+
+      return
+    }
   }
 
   const licenseDetails = LICENSE_DETAILS[licenseType]

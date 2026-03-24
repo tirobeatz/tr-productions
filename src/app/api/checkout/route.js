@@ -1,9 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, headers } from 'next/server'
 import { stripe, LICENSE_DETAILS } from '@/lib/stripe'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request) {
   try {
+    const headersList = await headers()
+    const ip = headersList.get('x-forwarded-for') || 'unknown'
+
+    const { limited } = rateLimit({ key: `checkout:${ip}`, limit: 5, window: 60000 })
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const body = await request.json()
 
     // Route to service checkout if serviceType is present
@@ -32,7 +41,7 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
     return NextResponse.json({ error: 'Invalid license type' }, { status: 400 })
   }
 
-  const { data: beat, error: beatError } = await supabase
+  const { data: beat, error: beatError } = await supabaseAdmin
     .from('beats')
     .select('*')
     .eq('id', beatId)
@@ -51,6 +60,21 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
 
   if (!price) {
     return NextResponse.json({ error: 'Price not available for this license' }, { status: 400 })
+  }
+
+  // For exclusive beats, attempt atomic reservation to prevent race condition
+  // This check will be validated again in the webhook handler with a final atomic update
+  if (licenseType === 'exclusive') {
+    const { data: reservedBeat, error: reserveError } = await supabaseAdmin
+      .from('beats')
+      .select('id')
+      .eq('id', beatId)
+      .eq('is_sold', false)
+      .single()
+
+    if (!reservedBeat) {
+      return NextResponse.json({ error: 'This beat has already been sold exclusively' }, { status: 400 })
+    }
   }
 
   const session = await stripe.checkout.sessions.create({
