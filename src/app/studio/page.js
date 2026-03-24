@@ -25,9 +25,25 @@ export default function StudioPage() {
   const [siteImages, setSiteImages] = useState([])
   const [visibleSections, setVisibleSections] = useState({})
   const [testimonials, setTestimonials] = useState([])
+  const [weeklySchedule, setWeeklySchedule] = useState(null)
 
   const HOURLY_RATE = 30, MIX_MASTER_RATE = 60, BULK_DISCOUNT_HOURS = 5, BULK_RATE = 25
-  const allHours = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+  const DEFAULT_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+  // Get open hours for a specific date based on weekly schedule
+  const getOpenHoursForDate = (d) => {
+    if (!d || !weeklySchedule) return DEFAULT_HOURS
+    const dayOfWeek = d.getDay()
+    const daySchedule = weeklySchedule.find(s => s.day_of_week === dayOfWeek)
+    if (!daySchedule || !daySchedule.is_open) return []
+    const hours = []
+    for (let h = daySchedule.open_hour; h < daySchedule.close_hour; h++) {
+      if (daySchedule.break_start != null && daySchedule.break_end != null && h >= daySchedule.break_start && h < daySchedule.break_end) continue
+      hours.push(h)
+    }
+    return hours
+  }
+  const allHours = selectedDate ? getOpenHoursForDate(selectedDate) : DEFAULT_HOURS
 
   const getInitials = (name) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
 
@@ -53,7 +69,14 @@ export default function StudioPage() {
     return () => observer.disconnect()
   }, [mounted])
 
-  const fetchData = async () => { setLoading(true); await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages(), fetchTestimonials()]); setLoading(false) }
+  const fetchSchedule = async () => {
+    try {
+      const res = await fetch('/api/studio-schedule')
+      const data = await res.json()
+      if (data.schedule) setWeeklySchedule(data.schedule)
+    } catch (e) { console.error('Failed to fetch schedule:', e) }
+  }
+  const fetchData = async () => { setLoading(true); await Promise.all([fetchAvailability(), fetchBookings(), fetchSiteImages(), fetchTestimonials(), fetchSchedule()]); setLoading(false) }
   const fetchAvailability = async () => { const { data } = await supabase.from('studio_availability').select('*').order('date', { ascending: true }); setAvailability(data || []) }
   const fetchBookings = async () => { const { data } = await supabase.from('studio_bookings').select('*').in('status', ['pending', 'confirmed']); setBookings(data || []) }
   const fetchSiteImages = async () => { const { data } = await supabase.from('site_images').select('*').eq('is_active', true); setSiteImages(data || []) }
@@ -74,15 +97,22 @@ export default function StudioPage() {
   }
   const formatDateKey = (d) => d?.toISOString().split('T')[0] || ''
   const getAvailabilityForDate = (d) => d ? availability.find(a => a.date === formatDateKey(d)) : null
+  const isDateClosed = (d) => {
+    if (!d || !weeklySchedule) return false
+    const daySchedule = weeklySchedule.find(s => s.day_of_week === d.getDay())
+    return daySchedule ? !daySchedule.is_open : false
+  }
   const getUnavailableHours = (d) => {
     if (!d) return []
+    const openHours = getOpenHoursForDate(d)
+    if (openHours.length === 0) return DEFAULT_HOURS // closed day
     const avail = getAvailabilityForDate(d)
-    if (avail?.is_fully_blocked) return allHours
+    if (avail?.is_fully_blocked) return openHours
     const unavail = avail?.blocked_hours || []
     bookings.filter(b => b.date === formatDateKey(d)).forEach(b => b.hours && unavail.push(...b.hours))
     return [...new Set(unavail)]
   }
-  const isDateFullyBlocked = (d) => getAvailabilityForDate(d)?.is_fully_blocked || false
+  const isDateFullyBlocked = (d) => isDateClosed(d) || getAvailabilityForDate(d)?.is_fully_blocked || false
   const isDateInPast = (d) => { const t = new Date(); t.setHours(0,0,0,0); return d < t }
   const isToday = (d) => d?.toDateString() === new Date().toDateString()
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -249,7 +279,7 @@ export default function StudioPage() {
                 {generateCalendarDays().map((date, i) => {
                   if (!date) return <div key={`e-${i}`} className="aspect-square" />
                   const isPast = isDateInPast(date), isBlocked = isDateFullyBlocked(date), isSelected = selectedDate?.toDateString() === date.toDateString()
-                  const isTodayDate = isToday(date), unavail = getUnavailableHours(date), partial = unavail.length > 0 && unavail.length < allHours.length
+                  const isTodayDate = isToday(date), dateHours = getOpenHoursForDate(date), unavail = getUnavailableHours(date), partial = unavail.length > 0 && unavail.length < dateHours.length
                   return (
                     <button key={date.toISOString()} onClick={() => handleDateSelect(date)} disabled={isPast || isBlocked}
                       className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition relative ${isPast || isBlocked ? 'text-gray-700 cursor-not-allowed' : isSelected ? 'bg-[#8B5CF6] text-white' : isTodayDate ? 'bg-white/10 hover:bg-white/20' : 'hover:bg-white/5 text-gray-300'}`}>
@@ -357,7 +387,7 @@ export default function StudioPage() {
                 <h2 className="text-2xl font-bold tracking-tight mb-3">Studio in Trier</h2>
                 <p className="text-gray-400 mb-4 text-sm">Cozy space, easy to find, parking available.</p>
                 <div className="space-y-2 text-xs text-gray-400">
-                  {[{ i: '📍', t: 'Trier, Germany' }, { i: '🕐', t: '10:00 - 22:00' }, { i: '📧', t: 'studio@trproductions.de' }].map(({ i, t }) => (
+                  {[{ i: '📍', t: 'Trier, Germany' }, { i: '🕐', t: weeklySchedule ? (() => { const open = weeklySchedule.filter(d => d.is_open); if (open.length === 0) return 'Closed'; const minH = Math.min(...open.map(d => d.open_hour)); const maxH = Math.max(...open.map(d => d.close_hour)); return `${String(minH).padStart(2,'0')}:00 - ${String(maxH).padStart(2,'0')}:00`; })() : '10:00 - 22:00' }, { i: '📧', t: 'studio@trproductions.de' }].map(({ i, t }) => (
                     <div key={t} className="flex items-center gap-2"><span className="text-[#8B5CF6]">{i}</span>{t}</div>
                   ))}
                 </div>

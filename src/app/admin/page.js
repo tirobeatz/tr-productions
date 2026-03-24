@@ -829,8 +829,57 @@ function AvailabilityManager({ availability, bookings, onRefresh, isMobile }) {
   const [isFullyBlocked, setIsFullyBlocked] = useState(false)
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
-  const HOURS = Array.from({ length: 13 }, (_, i) => i + 10)
+  const [scheduleTab, setScheduleTab] = useState('weekly') // 'weekly' or 'overrides'
 
+  // Weekly schedule state
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const ALL_HOURS = Array.from({ length: 24 }, (_, i) => i) // 0-23
+  const HOURS = Array.from({ length: 13 }, (_, i) => i + 10) // 10-22 for override blocking
+  const [weeklySchedule, setWeeklySchedule] = useState(
+    Array.from({ length: 7 }, (_, i) => ({
+      day_of_week: i,
+      is_open: i >= 1 && i <= 6,
+      open_hour: 10,
+      close_hour: 22,
+      break_start: null,
+      break_end: null,
+    }))
+  )
+  const [scheduleSaving, setScheduleSaving] = useState(false)
+  const [scheduleLoaded, setScheduleLoaded] = useState(false)
+
+  // Load weekly schedule on mount
+  useEffect(() => {
+    fetch('/api/studio-schedule').then(r => r.json()).then(data => {
+      if (data.schedule) setWeeklySchedule(data.schedule)
+      setScheduleLoaded(true)
+    }).catch(() => setScheduleLoaded(true))
+  }, [])
+
+  const updateDay = (dayIndex, field, value) => {
+    setWeeklySchedule(prev => prev.map(d =>
+      d.day_of_week === dayIndex ? { ...d, [field]: value } : d
+    ))
+  }
+
+  const saveWeeklySchedule = async () => {
+    setScheduleSaving(true)
+    try {
+      const res = await fetch('/api/studio-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule: weeklySchedule })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to save')
+      }
+    } catch (e) { alert('Failed to save schedule') }
+    setScheduleSaving(false)
+  }
+
+  // Date override logic (existing)
   const getDays = (date) => {
     const y = date.getFullYear(), m = date.getMonth()
     const first = new Date(y, m, 1), last = new Date(y, m + 1, 0)
@@ -866,7 +915,7 @@ function AvailabilityManager({ availability, bookings, onRefresh, isMobile }) {
   const handleClear = async () => {
     if (!selectedDate) return
     const a = getAvail(selectedDate)
-    if (!a || !confirm('Clear?')) return
+    if (!a || !confirm('Clear override for this date?')) return
     await supabase.from('studio_availability').delete().eq('id', a.id)
     setSelectedHours([]); setIsFullyBlocked(false); setNote(''); onRefresh()
   }
@@ -877,74 +926,171 @@ function AvailabilityManager({ availability, bookings, onRefresh, isMobile }) {
   return (
     <div>
       <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Studio Availability</h2>
-      <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
-        {/* Calendar */}
-        <div className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 hover:bg-white/10 rounded-lg">←</button>
-            <h3 className="font-semibold text-sm md:text-lg">{monthName}</h3>
-            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 hover:bg-white/10 rounded-lg">→</button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 mb-2">{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <div key={i} className="text-center text-[10px] md:text-xs text-gray-500 py-1 md:py-2">{d}</div>)}</div>
-          <div className="grid grid-cols-7 gap-1">
-            {days.map((d, i) => {
-              if (!d) return <div key={i} className="aspect-square" />
-              const isPast = d < new Date().setHours(0, 0, 0, 0)
-              const isSel = selectedDate && dateKey(d) === dateKey(selectedDate)
-              const a = getAvail(d), hasBook = getBookings(d).length > 0
-              const blocked = a?.is_fully_blocked, partial = a?.blocked_hours?.length > 0
-              return (
-                <button key={i} onClick={() => handleDateClick(d)} disabled={isPast} className={`aspect-square rounded-lg text-xs md:text-sm font-medium transition relative ${isPast ? 'text-gray-700 cursor-not-allowed' : isSel ? 'bg-[#8B5CF6] text-white' : blocked ? 'bg-red-500/20 text-red-400' : partial ? 'bg-yellow-500/20 text-yellow-400' : 'hover:bg-white/10'}`}>
-                  {d.getDate()}
-                  {hasBook && <span className="absolute bottom-0.5 md:bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 md:w-1.5 md:h-1.5 bg-green-500 rounded-full" />}
-                </button>
-              )
-            })}
-          </div>
-          <div className="flex flex-wrap gap-3 md:gap-4 mt-4 md:mt-6 text-[10px] md:text-xs text-gray-500">
-            <div className="flex items-center gap-1.5 md:gap-2"><span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500/20 rounded" /> Blocked</div>
-            <div className="flex items-center gap-1.5 md:gap-2"><span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-yellow-500/20 rounded" /> Partial</div>
-            <div className="flex items-center gap-1.5 md:gap-2"><span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full" /> Booked</div>
-          </div>
-        </div>
 
-        {/* Editor */}
-        <div className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
-          {selectedDate ? (
-            <>
-              <h3 className="font-semibold text-sm md:text-lg mb-3 md:mb-4">{selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
-              {getBookings(selectedDate).length > 0 && (
-                <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
-                  <p className="text-green-400 text-xs md:text-sm font-medium mb-1 md:mb-2">Existing Bookings:</p>
-                  {getBookings(selectedDate).map(b => <p key={b.id} className="text-xs md:text-sm text-gray-400">{b.name} - {b.hours?.map(h => `${h}:00`).join(', ')}</p>)}
-                </div>
-              )}
-              <label className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 cursor-pointer">
-                <input type="checkbox" checked={isFullyBlocked} onChange={e => setIsFullyBlocked(e.target.checked)} className="w-4 h-4 md:w-5 md:h-5 rounded" />
-                <span className="font-medium text-sm md:text-base">Block entire day</span>
-              </label>
-              {!isFullyBlocked && (
-                <div className="mb-4 md:mb-6">
-                  <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3">Block hours:</p>
-                  <div className="grid grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2">
-                    {HOURS.map(h => {
-                      const booked = getBookings(selectedDate).some(b => b.hours?.includes(h))
-                      return <button key={h} onClick={() => !booked && toggleHour(h)} disabled={booked} className={`py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition ${booked ? 'bg-green-500/20 text-green-400 cursor-not-allowed' : selectedHours.includes(h) ? 'bg-red-500/20 text-red-400' : 'bg-white/5 hover:bg-white/10'}`}>{h}:00</button>
-                    })}
-                  </div>
-                </div>
-              )}
-              <Input label="Note" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g., Holiday" />
-              <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
-                <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#8B5CF6] hover:bg-[#7C3AED] py-2.5 md:py-3 rounded-xl font-semibold text-sm disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
-                <button onClick={handleClear} className="px-4 md:px-6 py-2.5 md:py-3 border border-white/10 rounded-xl text-gray-400 hover:text-white text-sm">Clear</button>
-              </div>
-            </>
-          ) : (
-            <EmptyState icon="📅" text="Select a date" />
-          )}
-        </div>
+      {/* Tab Switcher */}
+      <div className="flex gap-2 mb-6">
+        <button onClick={() => setScheduleTab('weekly')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${scheduleTab === 'weekly' ? 'bg-[#8B5CF6] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+          Weekly Schedule
+        </button>
+        <button onClick={() => setScheduleTab('overrides')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${scheduleTab === 'overrides' ? 'bg-[#8B5CF6] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+          Date Overrides
+        </button>
       </div>
+
+      {/* Weekly Schedule Tab */}
+      {scheduleTab === 'weekly' && (
+        <div className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
+          <p className="text-gray-400 text-xs md:text-sm mb-4 md:mb-6">Set your default weekly hours. These apply every week unless you add a date override.</p>
+          <div className="space-y-3">
+            {weeklySchedule.map(day => (
+              <div key={day.day_of_week} className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-4 p-3 md:p-4 rounded-xl border transition ${day.is_open ? 'bg-white/[0.03] border-white/10' : 'bg-white/[0.01] border-white/5 opacity-60'}`}>
+                {/* Day name + toggle */}
+                <div className="flex items-center gap-3 md:w-40">
+                  <button onClick={() => updateDay(day.day_of_week, 'is_open', !day.is_open)}
+                    className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${day.is_open ? 'bg-[#8B5CF6]' : 'bg-white/10'}`}>
+                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${day.is_open ? 'left-[18px]' : 'left-0.5'}`} />
+                  </button>
+                  <span className={`font-medium text-sm ${day.is_open ? 'text-white' : 'text-gray-500'}`}>
+                    {isMobile ? DAY_SHORT[day.day_of_week] : DAY_NAMES[day.day_of_week]}
+                  </span>
+                </div>
+
+                {day.is_open && (
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                    {/* Open/Close */}
+                    <div className="flex items-center gap-1.5">
+                      <select value={day.open_hour} onChange={e => updateDay(day.day_of_week, 'open_hour', parseInt(e.target.value))}
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50">
+                        {ALL_HOURS.filter(h => h < (day.close_hour || 24)).map(h => (
+                          <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                        ))}
+                      </select>
+                      <span className="text-gray-500 text-sm">to</span>
+                      <select value={day.close_hour} onChange={e => updateDay(day.day_of_week, 'close_hour', parseInt(e.target.value))}
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50">
+                        {ALL_HOURS.filter(h => h > (day.open_hour || 0)).map(h => (
+                          <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Break */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-500 text-xs">Break:</span>
+                      <select value={day.break_start ?? ''} onChange={e => {
+                        const v = e.target.value === '' ? null : parseInt(e.target.value)
+                        updateDay(day.day_of_week, 'break_start', v)
+                        if (v === null) updateDay(day.day_of_week, 'break_end', null)
+                        else if (!day.break_end || day.break_end <= v) updateDay(day.day_of_week, 'break_end', v + 1)
+                      }}
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50">
+                        <option value="">None</option>
+                        {ALL_HOURS.filter(h => h >= day.open_hour && h < day.close_hour).map(h => (
+                          <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                        ))}
+                      </select>
+                      {day.break_start != null && (
+                        <>
+                          <span className="text-gray-500 text-xs">to</span>
+                          <select value={day.break_end ?? ''} onChange={e => updateDay(day.day_of_week, 'break_end', e.target.value === '' ? null : parseInt(e.target.value))}
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50">
+                            {ALL_HOURS.filter(h => h > day.break_start && h <= day.close_hour).map(h => (
+                              <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                            ))}
+                          </select>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!day.is_open && <span className="text-gray-600 text-xs md:text-sm">Closed</span>}
+              </div>
+            ))}
+          </div>
+          <button onClick={saveWeeklySchedule} disabled={scheduleSaving}
+            className="mt-6 w-full bg-[#8B5CF6] hover:bg-[#7C3AED] py-3 rounded-xl font-semibold text-sm disabled:opacity-50 transition">
+            {scheduleSaving ? 'Saving...' : 'Save Weekly Schedule'}
+          </button>
+        </div>
+      )}
+
+      {/* Date Overrides Tab */}
+      {scheduleTab === 'overrides' && (
+        <>
+          <p className="text-gray-400 text-xs md:text-sm mb-4">Override specific dates (holidays, special events). These take priority over your weekly schedule.</p>
+          <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
+            {/* Calendar */}
+            <div className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 hover:bg-white/10 rounded-lg">←</button>
+                <h3 className="font-semibold text-sm md:text-lg">{monthName}</h3>
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 hover:bg-white/10 rounded-lg">→</button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-2">{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <div key={i} className="text-center text-[10px] md:text-xs text-gray-500 py-1 md:py-2">{d}</div>)}</div>
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((d, i) => {
+                  if (!d) return <div key={i} className="aspect-square" />
+                  const isPast = d < new Date().setHours(0, 0, 0, 0)
+                  const isSel = selectedDate && dateKey(d) === dateKey(selectedDate)
+                  const a = getAvail(d), hasBook = getBookings(d).length > 0
+                  const blocked = a?.is_fully_blocked, partial = a?.blocked_hours?.length > 0
+                  return (
+                    <button key={i} onClick={() => handleDateClick(d)} disabled={isPast} className={`aspect-square rounded-lg text-xs md:text-sm font-medium transition relative ${isPast ? 'text-gray-700 cursor-not-allowed' : isSel ? 'bg-[#8B5CF6] text-white' : blocked ? 'bg-red-500/20 text-red-400' : partial ? 'bg-yellow-500/20 text-yellow-400' : 'hover:bg-white/10'}`}>
+                      {d.getDate()}
+                      {hasBook && <span className="absolute bottom-0.5 md:bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 md:w-1.5 md:h-1.5 bg-green-500 rounded-full" />}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex flex-wrap gap-3 md:gap-4 mt-4 md:mt-6 text-[10px] md:text-xs text-gray-500">
+                <div className="flex items-center gap-1.5 md:gap-2"><span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500/20 rounded" /> Blocked</div>
+                <div className="flex items-center gap-1.5 md:gap-2"><span className="w-2.5 h-2.5 md:w-3 md:h-3 bg-yellow-500/20 rounded" /> Partial</div>
+                <div className="flex items-center gap-1.5 md:gap-2"><span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full" /> Booked</div>
+              </div>
+            </div>
+
+            {/* Editor */}
+            <div className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
+              {selectedDate ? (
+                <>
+                  <h3 className="font-semibold text-sm md:text-lg mb-3 md:mb-4">{selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+                  {getBookings(selectedDate).length > 0 && (
+                    <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                      <p className="text-green-400 text-xs md:text-sm font-medium mb-1 md:mb-2">Existing Bookings:</p>
+                      {getBookings(selectedDate).map(b => <p key={b.id} className="text-xs md:text-sm text-gray-400">{b.name} - {b.hours?.map(h => `${h}:00`).join(', ')}</p>)}
+                    </div>
+                  )}
+                  <label className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 cursor-pointer">
+                    <input type="checkbox" checked={isFullyBlocked} onChange={e => setIsFullyBlocked(e.target.checked)} className="w-4 h-4 md:w-5 md:h-5 rounded" />
+                    <span className="font-medium text-sm md:text-base">Block entire day</span>
+                  </label>
+                  {!isFullyBlocked && (
+                    <div className="mb-4 md:mb-6">
+                      <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3">Block specific hours:</p>
+                      <div className="grid grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2">
+                        {HOURS.map(h => {
+                          const booked = getBookings(selectedDate).some(b => b.hours?.includes(h))
+                          return <button key={h} onClick={() => !booked && toggleHour(h)} disabled={booked} className={`py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition ${booked ? 'bg-green-500/20 text-green-400 cursor-not-allowed' : selectedHours.includes(h) ? 'bg-red-500/20 text-red-400' : 'bg-white/5 hover:bg-white/10'}`}>{h}:00</button>
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <Input label="Note" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g., Holiday, Special event" />
+                  <div className="flex gap-2 md:gap-3 mt-4 md:mt-6">
+                    <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#8B5CF6] hover:bg-[#7C3AED] py-2.5 md:py-3 rounded-xl font-semibold text-sm disabled:opacity-50">{saving ? 'Saving...' : 'Save Override'}</button>
+                    <button onClick={handleClear} className="px-4 md:px-6 py-2.5 md:py-3 border border-white/10 rounded-xl text-gray-400 hover:text-white text-sm">Clear</button>
+                  </div>
+                </>
+              ) : (
+                <EmptyState icon="📅" text="Select a date to add an override" />
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
