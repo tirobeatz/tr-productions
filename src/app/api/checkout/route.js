@@ -24,12 +24,20 @@ export async function POST(request) {
     // Original beat checkout flow
     return handleBeatCheckout(body)
   } catch (error) {
-    console.error('Checkout error:', error)
+    console.error('Checkout error:', error?.message || error)
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: error?.message || 'Failed to create checkout session' },
       { status: 500 }
     )
   }
+}
+
+function getSiteUrl() {
+  const url = process.env.NEXT_PUBLIC_SITE_URL
+  if (url) return url
+  // Fallback: check VERCEL_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'https://trproductions.de'
 }
 
 // Beat purchase checkout (existing flow)
@@ -94,8 +102,8 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/beats`,
+    success_url: `${getSiteUrl()}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${getSiteUrl()}/beats`,
     metadata: {
       beat_id: beatId,
       license_type: licenseType,
@@ -138,8 +146,8 @@ async function handleServiceCheckout({ serviceType, bookingId, customerEmail, to
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/booking/success?type=${serviceType}&id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/${serviceType === 'mix' ? 'mixing' : 'studio'}`,
+    success_url: `${getSiteUrl()}/booking/success?type=${serviceType}&id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${getSiteUrl()}/${serviceType === 'mix' ? 'mixing' : 'studio'}`,
     metadata: {
       service_type: serviceType,
       booking_id: bookingId,
