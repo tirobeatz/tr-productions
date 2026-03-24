@@ -97,16 +97,16 @@ export default function BeatsPage() {
   const formatTime = (s) => isNaN(s) || s === Infinity ? '0:00' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
   const formatPrice = (p) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(p)
 
-  // Check if a license is available (has price AND required files)
+  // Check if a license is available (has price set AND required files)
   const isLicenseAvailable = (beat, licenseId) => {
     const hasFile = (url) => url && url.trim() !== ''
     switch (licenseId) {
       case 'mp3':
-        return beat.price_mp3 != null && beat.price_mp3 > 0 && hasFile(beat.mp3_url)
+        return beat.price_mp3 != null && beat.price_mp3 >= 0 && hasFile(beat.mp3_url)
       case 'wav':
-        return beat.price_wav != null && beat.price_wav > 0 && hasFile(beat.wav_url)
+        return beat.price_wav != null && beat.price_wav >= 0 && hasFile(beat.wav_url)
       case 'unlimited': // Stems
-        return beat.price_stems != null && beat.price_stems > 0 && hasFile(beat.stems_url)
+        return beat.price_stems != null && beat.price_stems >= 0 && hasFile(beat.stems_url)
       case 'exclusive':
         // Exclusive needs price and at least one downloadable file
         return beat.price_exclusive != null && beat.price_exclusive > 0 && (hasFile(beat.mp3_url) || hasFile(beat.wav_url))
@@ -213,30 +213,46 @@ export default function BeatsPage() {
     setCheckoutLoading(true)
 
     try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          beatId: selectedBeat.id,
-          licenseType: selectedLicense.id,
-          customerEmail: checkoutEmail
+      const priceKey = `price_${selectedLicense.id === 'unlimited' ? 'stems' : selectedLicense.id}`
+      const price = selectedBeat[priceKey]
+      const isFree = price != null && price < 0.50
+
+      if (isFree) {
+        // Free beat — skip Stripe, go directly to free download
+        const response = await fetch('/api/free-download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            beatId: selectedBeat.id,
+            licenseType: selectedLicense.id,
+            customerEmail: checkoutEmail
+          })
         })
-      })
 
-      const text = await response.text()
-      let data
-      try { data = JSON.parse(text) } catch { throw new Error(`Server error (${response.status}): ${text.slice(0, 200) || 'empty response'}`) }
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Failed to get download')
+        window.location.href = data.redirectUrl
+      } else {
+        // Paid beat — use Stripe checkout
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            beatId: selectedBeat.id,
+            licenseType: selectedLicense.id,
+            customerEmail: checkoutEmail
+          })
+        })
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout')
+        const text = await response.text()
+        let data
+        try { data = JSON.parse(text) } catch { throw new Error('Server error. Please try again.') }
+
+        if (!response.ok) throw new Error(data.error || 'Failed to create checkout')
+        if (!data.url) throw new Error('No checkout URL returned. Please try again.')
+
+        window.location.href = data.url
       }
-
-      if (!data.url) {
-        throw new Error('No checkout URL returned. Please try again.')
-      }
-
-      // Redirect to Stripe Checkout
-      window.location.href = data.url
     } catch (error) {
       console.error('Checkout error:', error)
       setEmailError(error.message || 'Something went wrong. Please try again.')
@@ -378,11 +394,17 @@ export default function BeatsPage() {
                       {/* Price row */}
                       <div className="flex items-center justify-between">
                         <span className={`font-bold text-xs md:text-base ${beat.is_sold ? 'text-gray-500 line-through' : ''}`}>
-                          {getLowestPrice(beat) ? (
-                            <>
-                              <span className="text-gray-500 text-[10px] md:text-xs font-normal hidden md:inline">from </span>
-                              {formatPrice(getLowestPrice(beat))}
-                            </>
+                          {getLowestPrice(beat) !== null ? (
+                            getLowestPrice(beat) === 0 ? (
+                              <span className="text-green-400">Free</span>
+                            ) : getLowestPrice(beat) < 0.50 ? (
+                              <span className="text-green-400">Free</span>
+                            ) : (
+                              <>
+                                <span className="text-gray-500 text-[10px] md:text-xs font-normal hidden md:inline">from </span>
+                                {formatPrice(getLowestPrice(beat))}
+                              </>
+                            )
                           ) : (
                             <span className="text-gray-400 text-[10px] md:text-sm">Contact</span>
                           )}
@@ -391,10 +413,10 @@ export default function BeatsPage() {
                           <span className="bg-gray-600 text-gray-300 px-2 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium cursor-not-allowed">
                             Sold
                           </span>
-                        ) : getLowestPrice(beat) ? (
+                        ) : getLowestPrice(beat) !== null ? (
                           <button onClick={() => handleBuyClick(beat)}
-                            className="bg-white text-black px-2.5 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-gray-200 transition">
-                            Buy
+                            className={`px-2.5 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition ${getLowestPrice(beat) < 0.50 ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-white text-black hover:bg-gray-200'}`}>
+                            {getLowestPrice(beat) < 0.50 ? 'Get Free' : 'Buy'}
                           </button>
                         ) : (
                           <a href="mailto:contact@trproductions.de"
@@ -536,7 +558,7 @@ export default function BeatsPage() {
                           ) : null}
                           <h4 className="font-semibold text-xs md:text-base mb-0.5 md:mb-1">{lic.name}</h4>
                           <p className={`text-base md:text-2xl font-bold mb-2 md:mb-4 ${isDisabled ? 'line-through text-gray-500' : ''}`}>
-                            {formatPrice(price)}
+                            {price < 0.50 ? <span className="text-green-400">Free</span> : formatPrice(price)}
                           </p>
                           <ul className="space-y-1 md:space-y-2 hidden md:block">
                             {lic.features.map((f, i) => (
@@ -574,14 +596,20 @@ export default function BeatsPage() {
 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
                   <div>
-                    {selectedLicense && <p className="text-gray-400 text-sm">Total: <span className="text-white font-bold text-lg md:text-xl">{formatPrice(selectedBeat[selectedLicense.priceKey])}</span></p>}
+                    {selectedLicense && (
+                      <p className="text-gray-400 text-sm">Total: <span className="text-white font-bold text-lg md:text-xl">
+                        {selectedBeat[selectedLicense.priceKey] < 0.50 ? <span className="text-green-400">Free</span> : formatPrice(selectedBeat[selectedLicense.priceKey])}
+                      </span></p>
+                    )}
                   </div>
                   <button
                     onClick={handleCheckout}
                     disabled={!selectedLicense || checkoutLoading}
                     className={`w-full md:w-auto px-6 md:px-8 py-2.5 md:py-3 rounded-full font-semibold transition text-sm md:text-base flex items-center justify-center gap-2 ${
                       selectedLicense && !checkoutLoading
-                        ? 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
+                        ? selectedBeat[selectedLicense?.priceKey] < 0.50
+                          ? 'bg-green-500 hover:bg-green-600 text-white'
+                          : 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
                         : 'bg-white/10 text-gray-500 cursor-not-allowed'
                     }`}
                   >
@@ -591,10 +619,17 @@ export default function BeatsPage() {
                         Processing...
                       </>
                     ) : selectedLicense ? (
-                      <>
-                        <span>💳</span>
-                        Proceed to Checkout
-                      </>
+                      selectedBeat[selectedLicense.priceKey] < 0.50 ? (
+                        <>
+                          <span>🎁</span>
+                          Get Free Download
+                        </>
+                      ) : (
+                        <>
+                          <span>💳</span>
+                          Proceed to Checkout
+                        </>
+                      )
                     ) : (
                       'Select a License'
                     )}
@@ -602,9 +637,14 @@ export default function BeatsPage() {
                 </div>
 
                 {/* Payment Methods Note */}
-                {selectedLicense && (
+                {selectedLicense && selectedBeat[selectedLicense.priceKey] >= 0.50 && (
                   <p className="text-center text-gray-600 text-xs mt-4">
                     Secure checkout powered by Stripe. Pay with card, Apple Pay, or Google Pay.
+                  </p>
+                )}
+                {selectedLicense && selectedBeat[selectedLicense.priceKey] < 0.50 && (
+                  <p className="text-center text-gray-600 text-xs mt-4">
+                    Download link will be sent to your email.
                   </p>
                 )}
               </div>

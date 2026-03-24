@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server'
+import { stripe } from '@/lib/stripe'
+import { supabaseAdmin } from '@/lib/supabase-server'
+
+const LICENSE_DETAILS = {
+  mp3: { name: 'MP3 Lease', description: 'MP3 file with up to 50,000 streams. 20% publishing split to producer.' },
+  wav: { name: 'WAV Lease', description: 'WAV + MP3 files with up to 100,000 streams. 20% publishing split to producer.' },
+  unlimited: { name: 'Stems License', description: 'WAV + MP3 + Stems with up to 250,000 streams. 20% publishing split to producer.' },
+  exclusive: { name: 'Exclusive Rights', description: 'Full exclusive ownership. 20% publishing split to producer.' }
+}
 
 function getSiteUrl() {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL
@@ -8,31 +17,13 @@ function getSiteUrl() {
 
 export async function POST(request) {
   try {
-    // Check env vars before importing anything
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: 'Stripe is not configured (missing STRIPE_SECRET_KEY)' }, { status: 500 })
-    }
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 })
-    }
-
-    // Dynamic imports to avoid module-level crashes
-    const Stripe = (await import('stripe')).default
-    const { createClient } = await import('@supabase/supabase-js')
-
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' })
-    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    })
-
     const body = await request.json()
 
-    // Route to service checkout if serviceType is present
     if (body.serviceType) {
-      return await handleServiceCheckout(stripe, body)
+      return await handleServiceCheckout(body)
     }
 
-    return await handleBeatCheckout(stripe, supabaseAdmin, body)
+    return await handleBeatCheckout(body)
   } catch (error) {
     console.error('Checkout error:', error)
     return NextResponse.json(
@@ -42,14 +33,7 @@ export async function POST(request) {
   }
 }
 
-const LICENSE_DETAILS = {
-  mp3: { name: 'MP3 Lease', description: 'MP3 file with up to 50,000 streams. 20% publishing split to producer.' },
-  wav: { name: 'WAV Lease', description: 'WAV + MP3 files with up to 100,000 streams. 20% publishing split to producer.' },
-  unlimited: { name: 'Stems License', description: 'WAV + MP3 + Stems with up to 250,000 streams. 20% publishing split to producer.' },
-  exclusive: { name: 'Exclusive Rights', description: 'Full exclusive ownership. 20% publishing split to producer.' }
-}
-
-async function handleBeatCheckout(stripe, supabaseAdmin, { beatId, licenseType, customerEmail }) {
+async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
   if (!beatId || !licenseType || !customerEmail) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -75,10 +59,15 @@ async function handleBeatCheckout(stripe, supabaseAdmin, { beatId, licenseType, 
   const priceKey = `price_${licenseType === 'unlimited' ? 'stems' : licenseType}`
   const price = beat[priceKey]
 
-  if (!price) {
+  if (price === null || price === undefined) {
     return NextResponse.json({ error: 'Price not available for this license' }, { status: 400 })
   }
 
+  if (price < 0.50) {
+    return NextResponse.json({ error: 'Use free download for beats under €0.50' }, { status: 400 })
+  }
+
+  // For exclusive beats, check availability to prevent race condition
   if (licenseType === 'exclusive') {
     const { data: reservedBeat } = await supabaseAdmin
       .from('beats')
@@ -126,7 +115,7 @@ async function handleBeatCheckout(stripe, supabaseAdmin, { beatId, licenseType, 
   return NextResponse.json({ sessionId: session.id, url: session.url })
 }
 
-async function handleServiceCheckout(stripe, { serviceType, bookingId, customerEmail, totalPrice, serviceName }) {
+async function handleServiceCheckout({ serviceType, bookingId, customerEmail, totalPrice, serviceName }) {
   if (!serviceType || !bookingId || !customerEmail || !totalPrice) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
