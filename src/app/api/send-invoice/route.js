@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resend, FROM_EMAIL } from '@/lib/resend'
-import { generateInvoiceEmailHTML } from '@/app/api/webhook/route'
+import { generateInvoiceEmailHTML } from '@/lib/email-templates'
 
 export async function POST(request) {
   try {

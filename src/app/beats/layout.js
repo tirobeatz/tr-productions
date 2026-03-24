@@ -1,9 +1,9 @@
 export const metadata = {
-  title: 'Beat Store',
-  description: 'Browse and purchase exclusive beats for Hip-Hop, Trap, Drill, and R&B. Instant download with multiple license options. Industry-ready sound by TR Productions.',
+  title: 'Buy Beats Online',
+  description: 'Browse and buy exclusive and non-exclusive beats for Hip-Hop, Rap, Trap, Drill, and R&B. Instant delivery, professional quality by TR Productions.',
   openGraph: {
-    title: 'Beat Store | TR Productions',
-    description: 'Browse and purchase exclusive beats for Hip-Hop, Trap, Drill, and R&B.',
+    title: 'Buy Beats Online | TR Productions',
+    description: 'Browse and buy exclusive and non-exclusive beats for Hip-Hop, Rap, Trap, Drill, and R&B.',
   },
 }
 

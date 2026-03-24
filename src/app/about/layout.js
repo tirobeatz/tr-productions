@@ -1,9 +1,9 @@
 export const metadata = {
   title: 'About',
-  description: 'Learn about TR Productions - a music producer based in Trier, Germany specializing in Hip-Hop, Trap, Drill, and R&B production since 2019.',
+  description: 'Learn about TR Productions — the story, the journey, and the passion behind the music. Based in Trier, Germany.',
   openGraph: {
     title: 'About | TR Productions',
-    description: 'Learn about TR Productions - a music producer based in Trier, Germany.',
+    description: 'Learn about TR Productions — the story, the journey, and the passion behind the music.',
   },
 }
 

@@ -1,9 +1,9 @@
 export const metadata = {
   title: 'Contact',
-  description: 'Get in touch with TR Productions for beats, mixing, mastering, or studio sessions. Fast response. Based in Trier, Germany.',
+  description: 'Get in touch with TR Productions for bookings, collaborations, or questions. Based in Trier, Germany.',
   openGraph: {
     title: 'Contact | TR Productions',
-    description: 'Get in touch with TR Productions for beats, mixing, mastering, or studio sessions.',
+    description: 'Get in touch with TR Productions for bookings, collaborations, or questions.',
   },
 }
 

@@ -1,9 +1,9 @@
 export const metadata = {
-  title: 'Mix & Master',
-  description: 'Professional online mixing and mastering service for Hip-Hop, Trap, Drill, and R&B. Radio-ready sound. Fast delivery. €60 per track by TR Productions.',
+  title: 'Mixing & Mastering',
+  description: 'Professional mixing and mastering services for artists. Get your tracks radio-ready with TR Productions in Trier, Germany.',
   openGraph: {
-    title: 'Mix & Master | TR Productions',
-    description: 'Professional online mixing and mastering service. Radio-ready sound. Fast delivery.',
+    title: 'Mixing & Mastering | TR Productions',
+    description: 'Professional mixing and mastering services for artists. Get your tracks radio-ready.',
   },
 }
 

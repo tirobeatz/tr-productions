@@ -49,7 +49,7 @@ export default function AboutContentManager({ onRefresh }) {
       const { data, error } = await supabase.from('about_content').select('*').single()
       if (error) {
         // Table doesn't exist or no row - show setup message
-        console.log('About content fetch error:', error.code, error.message)
+        // Table doesn't exist or no row
         setContent(null)
       } else {
         setContent(data)

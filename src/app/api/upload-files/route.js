@@ -107,7 +107,12 @@ export async function POST(request) {
     }
 
     // Sanitize filename and create path
-    const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+    // Sanitize filename: strip path separators, leading dots, and non-safe characters
+    const sanitizedName = fileName
+      .replace(/^\.+/, '')           // remove leading dots
+      .replace(/[^a-zA-Z0-9._-]/g, '_')  // keep only safe chars
+      .replace(/\.{2,}/g, '.')       // collapse multiple dots
+      || 'unnamed_file'              // fallback if empty
     const path = `${serviceType}/${bookingId}/${sanitizedName}`
 
     // Create signed upload URL (valid for 2 hours)

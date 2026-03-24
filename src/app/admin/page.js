@@ -43,7 +43,7 @@ export default function AdminPage() {
     checkAuth()
 
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Session:', !!session)
+      // Auth state change detected
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Only check auth if we don't already have a valid session
         if (authState !== 'authenticated') {

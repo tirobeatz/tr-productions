@@ -64,10 +64,16 @@ const nextConfig = {
   // React strict mode for better development experience
   reactStrictMode: true,
 
+  // Allow large file uploads (up to 2GB for client file uploads)
+  serverExternalPackages: [],
+
   // Experimental features for better performance
   experimental: {
     // Enable optimized package imports
     optimizePackageImports: ['framer-motion', '@supabase/supabase-js'],
+    serverActions: {
+      bodySizeLimit: '2gb',
+    },
   },
 };
 

@@ -1,9 +1,9 @@
 export const metadata = {
   title: 'Studio Sessions',
-  description: 'Book professional recording studio sessions in Trier, Germany. Vocal recording, production, and creative sessions. €50/hour by TR Productions.',
+  description: 'Book recording studio sessions in Trier, Germany. Professional equipment, comfortable environment. Perfect for vocals, podcasts, and music production.',
   openGraph: {
     title: 'Studio Sessions | TR Productions',
-    description: 'Book professional recording studio sessions in Trier, Germany.',
+    description: 'Book recording studio sessions in Trier, Germany. Professional equipment, comfortable environment.',
   },
 }
 
