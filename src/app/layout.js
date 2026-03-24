@@ -96,6 +96,42 @@ export default function RootLayout({ children }) {
         {/* Preconnect to Supabase for faster asset loading */}
         <link rel="preconnect" href="https://supabase.co" />
         <link rel="dns-prefetch" href="https://supabase.co" />
+        {/* LocalBusiness structured data for SEO */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "RecordingStudio",
+            "name": "TR Productions",
+            "description": "Professional beats, mixing & mastering for Hip-Hop, Rap, Trap, Drill, and R&B artists. Studio sessions available.",
+            "url": siteUrl,
+            "logo": `${siteUrl}/og-image.png`,
+            "image": `${siteUrl}/og-image.png`,
+            "genre": ["Hip-Hop", "Rap", "Trap", "Drill", "R&B"],
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Trier",
+              "addressCountry": "DE"
+            },
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": 49.749,
+              "longitude": 6.637
+            },
+            "areaServed": {
+              "@type": "GeoCircle",
+              "geoMidpoint": { "@type": "GeoCoordinates", "latitude": 49.749, "longitude": 6.637 },
+              "geoRadius": "50000"
+            },
+            "priceRange": "€€",
+            "makesOffer": [
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Beat Production", "description": "Custom and pre-made beats for Hip-Hop, Trap, Drill, and R&B" }},
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Mixing & Mastering", "description": "Professional mixing and mastering services" }},
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Studio Recording", "description": "Recording studio sessions in Trier, Germany" }}
+            ],
+            "sameAs": []
+          })}}
+        />
       </head>
       <body>
         <PageLoaderProvider>
