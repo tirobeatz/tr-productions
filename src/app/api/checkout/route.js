@@ -87,8 +87,7 @@ async function handleBeatCheckout({ beatId, licenseType, customerEmail }) {
         product_data: {
           name: `${beat.title} - ${LICENSE_DETAILS[licenseType].name}`,
           description: LICENSE_DETAILS[licenseType].description,
-          images: beat.image_url ? [beat.image_url] : [],
-          metadata: { beat_id: beatId, license_type: licenseType }
+          ...(beat.image_url && beat.image_url.startsWith('https://') ? { images: [beat.image_url] } : {}),
         },
         unit_amount: Math.round(price * 100),
       },
