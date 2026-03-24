@@ -99,13 +99,35 @@ export default function StudioPage() {
   const handleSubmit = async (e) => {
     e.preventDefault(); setIsSubmitting(true); setSubmitError(null)
     try {
-      const { error } = await supabase.from('studio_bookings').insert([{
+      const totalPrice = calculateTotal()
+
+      // Save booking to database
+      const { data: booking, error } = await supabase.from('studio_bookings').insert([{
         name: formData.name, email: formData.email, phone: formData.phone || null, message: formData.message || null,
-        date: formatDateKey(selectedDate), hours: selectedHours, add_mix_master: includeMixMaster, total_price: calculateTotal(), status: 'pending'
-      }])
+        date: formatDateKey(selectedDate), hours: selectedHours, add_mix_master: includeMixMaster,
+        total_price: totalPrice, status: 'pending', payment_status: 'pending'
+      }]).select().single()
       if (error) throw error
-      setSubmitted(true); await fetchBookings()
-      setTimeout(() => { closeBookingModal(); setSelectedDate(null); setSelectedHours([]); setIncludeMixMaster(false); setFormData({ name: '', email: '', phone: '', message: '' }); setSubmitted(false) }, 3000)
+
+      // Create Stripe checkout for 50% deposit
+      const hoursText = `${selectedHours.length}h on ${formatDate(selectedDate)}`
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceType: 'studio',
+          bookingId: booking.id,
+          customerEmail: formData.email,
+          totalPrice,
+          serviceName: `Studio Session — ${hoursText}${includeMixMaster ? ' + Mix & Master' : ''}`
+        })
+      })
+
+      const checkout = await res.json()
+      if (checkout.error) throw new Error(checkout.error)
+
+      // Redirect to Stripe
+      window.location.href = checkout.url
     } catch (err) { setSubmitError(err.message || 'Failed to submit.') }
     finally { setIsSubmitting(false) }
   }

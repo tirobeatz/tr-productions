@@ -191,15 +191,34 @@ export default function MixingPage() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const { error } = await supabase.from('mix_requests').insert([{
+      const totalPrice = calculateTotal()
+
+      // Save booking to database
+      const { data: booking, error } = await supabase.from('mix_requests').insert([{
         name: formData.name, email: formData.email, track_name: formData.trackName, genre: formData.genre,
         reference_url: formData.reference || null, notes: formData.notes || null, rush_delivery: formData.rushDelivery,
-        total_price: calculateTotal(), status: 'pending'
-      }])
+        total_price: totalPrice, status: 'pending', payment_status: 'pending'
+      }]).select().single()
       if (error) throw error
-      setSubmitted(true)
-      setFormData({ name: '', email: '', trackName: '', genre: '', reference: '', notes: '', rushDelivery: false })
-      setTimeout(() => setSubmitted(false), 10000)
+
+      // Create Stripe checkout for 50% deposit
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceType: 'mix',
+          bookingId: booking.id,
+          customerEmail: formData.email,
+          totalPrice,
+          serviceName: `Mix & Master${formData.rushDelivery ? ' (Rush)' : ''} — ${formData.trackName}`
+        })
+      })
+
+      const checkout = await res.json()
+      if (checkout.error) throw new Error(checkout.error)
+
+      // Redirect to Stripe
+      window.location.href = checkout.url
     } catch (err) { setSubmitError(err.message || 'Failed to submit. Please try again.') }
     finally { setIsSubmitting(false) }
   }
