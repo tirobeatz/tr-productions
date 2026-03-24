@@ -397,10 +397,10 @@ export default function StudioPage() {
                   <form onSubmit={handleSubmit} className="space-y-3">
                     {[{ k: 'name', t: 'text', p: 'Name *', r: true }, { k: 'email', t: 'email', p: 'Email *', r: true }, { k: 'phone', t: 'tel', p: 'Phone' }].map(f => (
                       <input key={f.k} type={f.t} required={f.r} value={formData[f.k]} onChange={(e) => setFormData({ ...formData, [f.k]: e.target.value })}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50" placeholder={f.p} />
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50" placeholder={f.p} />
                     ))}
                     <textarea value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]/50 resize-none" placeholder="Message (optional)" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 resize-none" placeholder="Message (optional)" />
                     <button type="submit" disabled={isSubmitting}
                       className={`w-full py-3 rounded-full font-semibold transition flex items-center justify-center gap-2 text-sm ${isSubmitting ? 'bg-white/10 text-gray-500' : 'bg-[#8B5CF6] hover:bg-[#7C3AED] hover:scale-105'}`}>
                       {isSubmitting ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</> : 'Confirm Booking'}

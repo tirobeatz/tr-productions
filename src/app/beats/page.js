@@ -266,12 +266,12 @@ export default function BeatsPage() {
           <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-4 md:mb-6">
             {genres.map(g => (
               <button key={g} onClick={() => setActiveGenre(g)}
-                className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all ${activeGenre === g ? 'bg-[#8B5CF6] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                className={`px-3 md:px-5 py-2 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all ${activeGenre === g ? 'bg-[#8B5CF6] text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                 {g}
               </button>
             ))}
             <button onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all flex items-center gap-1.5 ${showFavoritesOnly ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+              className={`px-3 md:px-5 py-1.5 rounded-full text-xs md:text-sm font-medium transition-all flex items-center gap-1.5 ${showFavoritesOnly ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
               <span>♥</span>{favorites.length > 0 && `(${favorites.length})`}
             </button>
           </div>
@@ -280,7 +280,7 @@ export default function BeatsPage() {
           <div className="flex flex-wrap justify-center gap-1.5 md:gap-2 mb-6 md:mb-12">
             {allTags.map(tag => (
               <button key={tag} onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all ${activeTag === tag ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}>
+                className={`px-2 md:px-3 py-1.5 rounded-full text-xs font-medium transition-all ${activeTag === tag ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}>
                 #{tag}
               </button>
             ))}
@@ -290,7 +290,7 @@ export default function BeatsPage() {
           <div className="max-w-md mx-auto mb-8 md:mb-16">
             <div className="relative">
               <input type="text" placeholder="Search beats..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-full px-4 md:px-6 py-2.5 md:py-3 text-sm placeholder-gray-500 focus:outline-none focus:border-[#8B5CF6]/50 transition" />
+                className="w-full bg-white/5 border border-white/10 rounded-full px-4 md:px-6 py-2.5 md:py-3 text-base md:text-sm placeholder-gray-500 focus:outline-none focus:border-[#8B5CF6]/50 transition" />
               <span className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
             </div>
           </div>
@@ -315,9 +315,9 @@ export default function BeatsPage() {
                         <div className="w-full h-full flex items-center justify-center"><span className="text-3xl md:text-5xl opacity-30">🎵</span></div>
                       )}
                       
-                      {beat.is_sold && <div className="absolute top-2 left-2 bg-red-500/90 text-white text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide z-20">SOLD</div>}
-                      {!beat.is_sold && !beat.audio_url && <div className="absolute top-2 left-2 bg-yellow-500/20 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded-full">No Audio</div>}
-                      {!beat.is_sold && beat.is_featured && <div className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-[10px] px-1.5 py-0.5 rounded-full">Featured</div>}
+                      {beat.is_sold && <div className="absolute top-2 left-2 bg-red-500/90 text-white text-xs px-2 py-0.5 rounded-full font-bold tracking-wide z-20">SOLD</div>}
+                      {!beat.is_sold && !beat.audio_url && <div className="absolute top-2 left-2 bg-yellow-500/20 text-yellow-400 text-xs px-1.5 py-0.5 rounded-full">No Audio</div>}
+                      {!beat.is_sold && beat.is_featured && <div className="absolute top-2 left-2 bg-[#8B5CF6] text-white text-xs px-1.5 py-0.5 rounded-full">Featured</div>}
                       
                       {/* Desktop Actions */}
                       <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden md:flex">
@@ -352,10 +352,10 @@ export default function BeatsPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="p-3 md:p-5">
-                      <div className="flex items-start justify-between mb-1 md:mb-2 gap-2">
+                    <div className="p-2.5 md:p-5">
+                      <div className="flex items-start justify-between mb-1 md:mb-2 gap-1">
                         <h3 className="font-semibold text-sm md:text-base truncate">{beat.title}</h3>
-                        <span className="text-[10px] md:text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full flex-shrink-0">{beat.genre}</span>
+                        <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full flex-shrink-0">{beat.genre}</span>
                       </div>
                       <p className="text-gray-500 text-xs md:text-sm mb-2 md:mb-3">{beat.bpm} BPM • {beat.key}</p>
                       
@@ -377,14 +377,14 @@ export default function BeatsPage() {
                             <span className="text-gray-400">Contact</span>
                           )}
                         </span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           {/* Mobile Actions */}
                           <button onClick={(e) => { e.stopPropagation(); toggleFavorite(beat.id) }}
-                            className={`w-7 h-7 md:hidden rounded-full flex items-center justify-center transition ${favorites.includes(beat.id) ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-gray-400'}`}>
+                            className={`w-9 h-9 md:hidden rounded-full flex items-center justify-center transition ${favorites.includes(beat.id) ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-gray-400'}`}>
                             <span className="text-xs">{favorites.includes(beat.id) ? '♥' : '♡'}</span>
                           </button>
                           <button onClick={(e) => { e.stopPropagation(); openNotepad(beat) }}
-                            className="w-7 h-7 md:hidden rounded-full bg-white/5 text-gray-400 flex items-center justify-center">
+                            className="w-9 h-9 md:hidden rounded-full bg-white/5 text-gray-400 flex items-center justify-center">
                             <span className="text-xs">✎</span>
                           </button>
                           {beat.is_sold ? (
@@ -393,12 +393,12 @@ export default function BeatsPage() {
                             </span>
                           ) : getLowestPrice(beat) ? (
                             <button onClick={() => handleBuyClick(beat)}
-                              className="bg-white text-black px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-gray-200 transition">
+                              className="bg-white text-black px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition">
                               Buy
                             </button>
                           ) : (
                             <a href="mailto:contact@trproductions.de"
-                              className="bg-white/10 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium hover:bg-white/20 transition">
+                              className="bg-white/10 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs font-medium hover:bg-white/20 transition">
                               Contact
                             </a>
                           )}
@@ -547,7 +547,7 @@ export default function BeatsPage() {
                       value={checkoutEmail}
                       onChange={(e) => { setCheckoutEmail(e.target.value); setEmailError('') }}
                       placeholder="your@email.com"
-                      className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none transition ${
+                      className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-base md:text-sm placeholder-gray-500 focus:outline-none transition ${
                         emailError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-[#8B5CF6]/50'
                       }`}
                     />
@@ -623,7 +623,7 @@ export default function BeatsPage() {
                 <p className="text-gray-500 text-xs">{formatTime(currentTime)} / {formatTime(duration)}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0" onClick={() => handlePlay(currentBeat)}>
+                <button className="w-11 h-11 bg-white rounded-full flex items-center justify-center flex-shrink-0" onClick={() => handlePlay(currentBeat)}>
                   {isPlaying ? <span className="text-black text-xs">❚❚</span> : <span className="text-black text-xs ml-0.5">▶</span>}
                 </button>
                 {getLowestPrice(currentBeat) ? (

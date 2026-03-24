@@ -134,7 +134,7 @@ export default function ContactPage() {
                         <div key={f.k}>
                           <label className="block text-xs md:text-sm text-gray-400 mb-1.5 md:mb-2">{f.l} *</label>
                           <input type={f.t} required value={formData[f.k]} onChange={(e) => setFormData({ ...formData, [f.k]: e.target.value })}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition" placeholder={f.p} />
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition" placeholder={f.p} />
                         </div>
                       ))}
                     </div>

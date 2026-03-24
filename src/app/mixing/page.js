@@ -1247,7 +1247,7 @@ export default function MixingPage() {
                           required
                           value={formData[f.k]}
                           onChange={(e) => setFormData({ ...formData, [f.k]: e.target.value })}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
                           placeholder={f.p}
                         />
                       </div>
@@ -1262,7 +1262,7 @@ export default function MixingPage() {
                         required
                         value={formData.trackName}
                         onChange={(e) => setFormData({ ...formData, trackName: e.target.value })}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
                         placeholder="Song title"
                       />
                     </div>
@@ -1272,7 +1272,7 @@ export default function MixingPage() {
                         required
                         value={formData.genre}
                         onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
                       >
                         <option value="">Select genre</option>
                         {['Hip-Hop', 'Trap', 'Drill', 'R&B', 'Pop', 'Afrobeat', 'Other'].map(g => (
@@ -1288,7 +1288,7 @@ export default function MixingPage() {
                       type="text"
                       value={formData.reference}
                       onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition"
                       placeholder="Link to a song with a similar vibe"
                     />
                   </div>
@@ -1299,7 +1299,7 @@ export default function MixingPage() {
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition resize-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:outline-none focus:border-[#8B5CF6]/50 transition resize-none"
                       placeholder="Any specific requests..."
                     />
                   </div>
