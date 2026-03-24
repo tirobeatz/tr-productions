@@ -953,12 +953,53 @@ function AvailabilityManager({ availability, bookings, onRefresh, isMobile }) {
 function BookingsManager({ bookings, onRefresh, formatPrice, formatDate }) {
   const update = async (b, status) => { await supabase.from('studio_bookings').update({ status }).eq('id', b.id); onRefresh() }
   const del = async (b) => { if (!confirm('Delete?')) return; await supabase.from('studio_bookings').delete().eq('id', b.id); onRefresh() }
+  const [expandedFiles, setExpandedFiles] = useState(null)
+  const [fileCache, setFileCache] = useState({})
+  const [sendingInvoice, setSendingInvoice] = useState(null)
+
+  const PAYMENT_COLORS = { pending: 'bg-gray-500/20 text-gray-400', deposit_paid: 'bg-blue-500/20 text-blue-400', invoice_sent: 'bg-yellow-500/20 text-yellow-400', fully_paid: 'bg-green-500/20 text-green-400' }
+  const PAYMENT_LABELS = { pending: 'Awaiting Deposit', deposit_paid: 'Deposit Paid', invoice_sent: 'Invoice Sent', fully_paid: 'Fully Paid' }
+
+  const toggleFiles = async (id) => {
+    if (expandedFiles === id) { setExpandedFiles(null); return }
+    setExpandedFiles(id)
+    if (!fileCache[id]) {
+      try {
+        const res = await fetch(`/api/upload-files?bookingId=${id}&type=studio`)
+        const data = await res.json()
+        setFileCache(prev => ({ ...prev, [id]: data.files || [] }))
+      } catch { setFileCache(prev => ({ ...prev, [id]: [] })) }
+    }
+  }
+
+  const deleteFile = async (bookingId, fileName) => {
+    if (!confirm(`Delete ${fileName}?`)) return
+    try {
+      const res = await fetch('/api/upload-files', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId, serviceType: 'studio', fileName }) })
+      const data = await res.json()
+      if (data.success) setFileCache(prev => ({ ...prev, [bookingId]: prev[bookingId].filter(f => f.name !== fileName) }))
+    } catch { alert('Failed to delete file') }
+  }
+
+  const sendInvoice = async (bookingId) => {
+    setSendingInvoice(bookingId)
+    try {
+      const res = await fetch('/api/send-invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceType: 'studio', bookingId }) })
+      const data = await res.json()
+      if (data.error) alert(`Error: ${data.error}`)
+      else { alert(`Invoice sent! Amount: €${data.amount.toFixed(2)}`); onRefresh() }
+    } catch { alert('Failed to send invoice') }
+    setSendingInvoice(null)
+  }
 
   return (
     <div>
       <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Studio Bookings</h2>
       <div className="space-y-3 md:space-y-4">
-        {bookings.map(b => (
+        {bookings.map(b => {
+          const ps = b.payment_status || 'pending'
+          const depositAmt = b.deposit_amount || Math.round((b.total_price || 0) / 2)
+          return (
           <div key={b.id} className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
             <div className="flex items-start justify-between mb-3 md:mb-4">
               <div>
@@ -966,24 +1007,69 @@ function BookingsManager({ bookings, onRefresh, formatPrice, formatDate }) {
                 <p className="text-gray-500 text-xs md:text-sm">{b.email}</p>
                 {b.phone && <p className="text-gray-500 text-xs md:text-sm">{b.phone}</p>}
               </div>
-              <StatusBadge status={b.status} />
+              <div className="flex items-center gap-2">
+                {ps !== 'pending' && <span className={`px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium ${PAYMENT_COLORS[ps]}`}>{PAYMENT_LABELS[ps]}</span>}
+                <StatusBadge status={b.status} />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-2 md:gap-4 mb-3 md:mb-4">
               <div><p className="text-gray-500 text-[10px] md:text-xs">Date</p><p className="font-medium text-xs md:text-base">{new Date(b.date).toLocaleDateString('de-DE')}</p></div>
               <div><p className="text-gray-500 text-[10px] md:text-xs">Hours</p><p className="font-medium text-xs md:text-base">{b.hours?.map(h => `${h}:00`).join(', ')}</p></div>
               <div><p className="text-gray-500 text-[10px] md:text-xs">Total</p><p className="font-medium text-[#8B5CF6] text-xs md:text-base">{formatPrice(b.total_price)}</p></div>
             </div>
+            {ps !== 'pending' && ps !== 'fully_paid' && (
+              <div className="text-xs text-gray-500 mb-3">Paid: €{depositAmt.toFixed(2)} · Due: €{((b.total_price || 0) - depositAmt).toFixed(2)}</div>
+            )}
             {b.add_mix_master && <p className="text-xs md:text-sm text-purple-400 mb-3 md:mb-4">+ Mix & Master</p>}
             {b.message && <p className="text-gray-400 text-xs md:text-sm mb-3 md:mb-4 bg-white/5 p-2 md:p-3 rounded-xl">{b.message}</p>}
             <div className="flex items-center gap-2 pt-3 md:pt-4 border-t border-white/10">
               <p className="text-[10px] md:text-xs text-gray-500 flex-1">{formatDate(b.created_at)}</p>
+              {ps === 'deposit_paid' && (
+                <button onClick={() => sendInvoice(b.id)} disabled={sendingInvoice === b.id} className="px-3 py-1 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                  {sendingInvoice === b.id ? 'Sending...' : 'Send Invoice'}
+                </button>
+              )}
               <select value={b.status} onChange={e => update(b, e.target.value)} className="bg-white/5 border border-white/10 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm">
                 {['pending', 'confirmed', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <button onClick={() => del(b)} className="text-gray-400 hover:text-red-400 p-1.5 md:p-2 text-sm">🗑️</button>
             </div>
+            {/* Files section */}
+            {ps !== 'pending' && (
+              <div className="mt-3 pt-3 border-t border-white/5">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => toggleFiles(b.id)} className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] transition-colors">
+                    {expandedFiles === b.id ? 'Hide Files' : 'View Files'}
+                  </button>
+                  <a href={`/upload?type=studio&id=${b.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Upload Link</a>
+                </div>
+                {expandedFiles === b.id && (
+                  <div className="mt-2">
+                    {!fileCache[b.id] ? (
+                      <div className="flex items-center gap-2 text-xs text-gray-500"><div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Loading...</div>
+                    ) : fileCache[b.id].length === 0 ? (
+                      <p className="text-xs text-gray-600">No files uploaded yet</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-gray-500 mb-1">{fileCache[b.id].length} file(s)</p>
+                        {fileCache[b.id].map((f, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="text-[#8B5CF6]">&#9679;</span>
+                            <span className="text-gray-300 truncate flex-1">{f.name}</span>
+                            {f.size > 0 && <span className="text-gray-600 text-[10px]">{(f.size / 1024 / 1024).toFixed(1)}MB</span>}
+                            <a href={`/api/upload-files?type=studio&bookingId=${b.id}&download=${encodeURIComponent(f.name)}`} className="text-[10px] text-[#8B5CF6] hover:text-[#A78BFA]">Download</a>
+                            <button onClick={() => deleteFile(b.id, f.name)} className="text-[10px] text-red-400 hover:text-red-300">Delete</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        ))}
+          )
+        })}
         {bookings.length === 0 && <EmptyState icon="🎤" text="No bookings yet." />}
       </div>
     </div>
@@ -994,36 +1080,122 @@ function BookingsManager({ bookings, onRefresh, formatPrice, formatDate }) {
 function MixRequestsManager({ requests, onRefresh, formatPrice, formatDate }) {
   const update = async (r, status) => { await supabase.from('mix_requests').update({ status }).eq('id', r.id); onRefresh() }
   const del = async (r) => { if (!confirm('Delete?')) return; await supabase.from('mix_requests').delete().eq('id', r.id); onRefresh() }
+  const [expandedFiles, setExpandedFiles] = useState(null)
+  const [fileCache, setFileCache] = useState({})
+  const [sendingInvoice, setSendingInvoice] = useState(null)
+
+  const PAYMENT_COLORS = { pending: 'bg-gray-500/20 text-gray-400', deposit_paid: 'bg-blue-500/20 text-blue-400', invoice_sent: 'bg-yellow-500/20 text-yellow-400', fully_paid: 'bg-green-500/20 text-green-400' }
+  const PAYMENT_LABELS = { pending: 'Awaiting Deposit', deposit_paid: 'Deposit Paid', invoice_sent: 'Invoice Sent', fully_paid: 'Fully Paid' }
+
+  const toggleFiles = async (id) => {
+    if (expandedFiles === id) { setExpandedFiles(null); return }
+    setExpandedFiles(id)
+    if (!fileCache[id]) {
+      try {
+        const res = await fetch(`/api/upload-files?bookingId=${id}&type=mix`)
+        const data = await res.json()
+        setFileCache(prev => ({ ...prev, [id]: data.files || [] }))
+      } catch { setFileCache(prev => ({ ...prev, [id]: [] })) }
+    }
+  }
+
+  const deleteFile = async (bookingId, fileName) => {
+    if (!confirm(`Delete ${fileName}?`)) return
+    try {
+      const res = await fetch('/api/upload-files', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId, serviceType: 'mix', fileName }) })
+      const data = await res.json()
+      if (data.success) setFileCache(prev => ({ ...prev, [bookingId]: prev[bookingId].filter(f => f.name !== fileName) }))
+    } catch { alert('Failed to delete file') }
+  }
+
+  const sendInvoice = async (bookingId) => {
+    setSendingInvoice(bookingId)
+    try {
+      const res = await fetch('/api/send-invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceType: 'mix', bookingId }) })
+      const data = await res.json()
+      if (data.error) alert(`Error: ${data.error}`)
+      else { alert(`Invoice sent! Amount: €${data.amount.toFixed(2)}`); onRefresh() }
+    } catch { alert('Failed to send invoice') }
+    setSendingInvoice(null)
+  }
 
   return (
     <div>
       <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Mix & Master Requests</h2>
       <div className="space-y-3 md:space-y-4">
-        {requests.map(r => (
+        {requests.map(r => {
+          const ps = r.payment_status || 'pending'
+          const depositAmt = r.deposit_amount || Math.round((r.total_price || 0) / 2)
+          return (
           <div key={r.id} className="bg-white/[0.02] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6">
             <div className="flex items-start justify-between mb-3 md:mb-4">
               <div>
                 <h3 className="font-semibold text-sm md:text-lg">{r.track_name}</h3>
                 <p className="text-gray-500 text-xs md:text-sm">by {r.name} ({r.email})</p>
               </div>
-              <StatusBadge status={r.status} />
+              <div className="flex items-center gap-2">
+                {ps !== 'pending' && <span className={`px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium ${PAYMENT_COLORS[ps]}`}>{PAYMENT_LABELS[ps]}</span>}
+                <StatusBadge status={r.status} />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-2 md:gap-4 mb-3 md:mb-4">
               <div><p className="text-gray-500 text-[10px] md:text-xs">Genre</p><p className="font-medium text-xs md:text-base">{r.genre}</p></div>
               <div><p className="text-gray-500 text-[10px] md:text-xs">Delivery</p><p className="font-medium text-xs md:text-base">{r.rush_delivery ? '⚡ Rush' : 'Standard'}</p></div>
               <div><p className="text-gray-500 text-[10px] md:text-xs">Total</p><p className="font-medium text-[#8B5CF6] text-xs md:text-base">{formatPrice(r.total_price)}</p></div>
             </div>
+            {ps !== 'pending' && ps !== 'fully_paid' && (
+              <div className="text-xs text-gray-500 mb-3">Paid: €{depositAmt.toFixed(2)} · Due: €{((r.total_price || 0) - depositAmt).toFixed(2)}</div>
+            )}
             {r.reference_url && <p className="text-xs md:text-sm mb-2 truncate"><span className="text-gray-500">Ref:</span> <a href={r.reference_url} target="_blank" className="text-[#8B5CF6]">{r.reference_url}</a></p>}
             {r.notes && <p className="text-gray-400 text-xs md:text-sm mb-3 md:mb-4 bg-white/5 p-2 md:p-3 rounded-xl">{r.notes}</p>}
             <div className="flex items-center gap-2 pt-3 md:pt-4 border-t border-white/10">
               <p className="text-[10px] md:text-xs text-gray-500 flex-1">{formatDate(r.created_at)}</p>
+              {ps === 'deposit_paid' && (
+                <button onClick={() => sendInvoice(r.id)} disabled={sendingInvoice === r.id} className="px-3 py-1 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                  {sendingInvoice === r.id ? 'Sending...' : 'Send Invoice'}
+                </button>
+              )}
               <select value={r.status} onChange={e => update(r, e.target.value)} className="bg-white/5 border border-white/10 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm">
                 {['pending', 'in_progress', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <button onClick={() => del(r)} className="text-gray-400 hover:text-red-400 p-1.5 md:p-2 text-sm">🗑️</button>
             </div>
+            {/* Files section */}
+            {ps !== 'pending' && (
+              <div className="mt-3 pt-3 border-t border-white/5">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => toggleFiles(r.id)} className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] transition-colors">
+                    {expandedFiles === r.id ? 'Hide Files' : 'View Files'}
+                  </button>
+                  <a href={`/upload?type=mix&id=${r.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Upload Link</a>
+                </div>
+                {expandedFiles === r.id && (
+                  <div className="mt-2">
+                    {!fileCache[r.id] ? (
+                      <div className="flex items-center gap-2 text-xs text-gray-500"><div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Loading...</div>
+                    ) : fileCache[r.id].length === 0 ? (
+                      <p className="text-xs text-gray-600">No files uploaded yet</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-gray-500 mb-1">{fileCache[r.id].length} file(s)</p>
+                        {fileCache[r.id].map((f, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="text-[#8B5CF6]">&#9679;</span>
+                            <span className="text-gray-300 truncate flex-1">{f.name}</span>
+                            {f.size > 0 && <span className="text-gray-600 text-[10px]">{(f.size / 1024 / 1024).toFixed(1)}MB</span>}
+                            <a href={`/api/upload-files?type=mix&bookingId=${r.id}&download=${encodeURIComponent(f.name)}`} className="text-[10px] text-[#8B5CF6] hover:text-[#A78BFA]">Download</a>
+                            <button onClick={() => deleteFile(r.id, f.name)} className="text-[10px] text-red-400 hover:text-red-300">Delete</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        ))}
+          )
+        })}
         {requests.length === 0 && <EmptyState icon="🎚️" text="No mix requests yet." />}
       </div>
     </div>
