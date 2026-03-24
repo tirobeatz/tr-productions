@@ -31,7 +31,7 @@ export const metadata = {
     description: 'Professional beats, mixing & mastering for Hip-Hop, Rap, Trap, Drill, and R&B artists.',
     images: [
       {
-        url: `${siteUrl}/og-image.svg`,
+        url: `${siteUrl}/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'TR Productions - Music Producer',
@@ -44,7 +44,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'TR Productions | Music Producer',
     description: 'Professional beats, mixing & mastering for Hip-Hop, Rap, Trap, Drill, and R&B artists.',
-    images: [`${siteUrl}/og-image.svg`],
+    images: [`${siteUrl}/og-image.png`],
   },
 
   // Robots
