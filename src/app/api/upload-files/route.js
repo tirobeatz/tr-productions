@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024 // 2GB
+export const dynamic = 'force-dynamic'
+
 const BUCKET = 'client-uploads'
 
-// Verify booking and return upload permission
+// GET: Verify booking + list files + download file
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -75,20 +76,17 @@ export async function GET(request) {
   }
 }
 
-// Handle file upload
+// POST: Generate a signed upload URL (client uploads directly to Supabase)
 export async function POST(request) {
   try {
-    const formData = await request.formData()
-    const file = formData.get('file')
-    const bookingId = formData.get('bookingId')
-    const serviceType = formData.get('type')
+    const { bookingId, serviceType, fileName, contentType } = await request.json()
 
-    if (!file || !bookingId || !serviceType) {
+    if (!bookingId || !serviceType || !fileName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large. Maximum 2GB.' }, { status: 400 })
+    if (!['mix', 'studio'].includes(serviceType)) {
+      return NextResponse.json({ error: 'Invalid service type' }, { status: 400 })
     }
 
     // Verify booking exists and deposit is paid
@@ -108,35 +106,38 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Deposit must be paid before uploading' }, { status: 403 })
     }
 
-    // Upload to Supabase Storage
-    const fileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const path = `${serviceType}/${bookingId}/${fileName}`
+    // Sanitize filename and create path
+    const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `${serviceType}/${bookingId}/${sanitizedName}`
 
-    const buffer = Buffer.from(await file.arrayBuffer())
-
-    const { error: uploadError } = await supabaseAdmin.storage
+    // Create signed upload URL (valid for 2 hours)
+    const { data, error: signError } = await supabaseAdmin.storage
       .from(BUCKET)
-      .upload(path, buffer, {
-        contentType: file.type || 'application/octet-stream',
-        upsert: true
-      })
+      .createSignedUploadUrl(path)
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError)
-      return NextResponse.json({ error: 'Upload failed: ' + uploadError.message }, { status: 500 })
+    if (signError) {
+      console.error('Signed URL error:', signError)
+      return NextResponse.json({ error: 'Failed to create upload URL: ' + signError.message }, { status: 500 })
+    }
+
+    if (!data?.signedUrl || !data?.token) {
+      console.error('Signed URL missing data:', data)
+      return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 })
     }
 
     return NextResponse.json({
-      success: true,
-      file: { name: fileName, size: file.size, path }
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path,
+      fileName: sanitizedName
     })
   } catch (error) {
-    console.error('Upload error:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    console.error('Upload URL error:', error)
+    return NextResponse.json({ error: 'Failed to create upload URL' }, { status: 500 })
   }
 }
 
-// Delete a file
+// DELETE: Remove a file
 export async function DELETE(request) {
   try {
     const { bookingId, serviceType, fileName } = await request.json()
@@ -152,6 +153,7 @@ export async function DELETE(request) {
       .remove([path])
 
     if (error) {
+      console.error('Storage delete error:', error)
       return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
     }
 

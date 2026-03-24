@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
 
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 B'
@@ -62,26 +61,37 @@ function UploadContent() {
           contentType: file.type || 'application/octet-stream'
         })
       })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `Server error (${res.status})`)
+      }
+
       const data = await res.json()
       if (data.error) throw new Error(data.error)
+      if (!data.signedUrl || !data.token) throw new Error('Invalid upload URL response')
 
-      // Step 2: Upload file directly to Supabase using the signed URL token
+      // Step 2: Upload file directly to Supabase using the signed URL
       setUploading(prev => prev.map(u => u.id === id ? { ...u, progress: 10 } : u))
 
-      const { error: uploadError } = await supabase.storage
-        .from('client-uploads')
-        .uploadToSignedUrl(data.path, data.token, file, {
-          contentType: file.type || 'application/octet-stream',
-          upsert: true
-        })
+      const uploadRes = await fetch(data.signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+        },
+        body: file
+      })
 
-      if (uploadError) {
-        throw new Error(uploadError.message || 'Upload failed')
+      if (!uploadRes.ok) {
+        const errBody = await uploadRes.text().catch(() => '')
+        console.error('Supabase upload error:', uploadRes.status, errBody)
+        throw new Error(`Upload failed (${uploadRes.status}): ${errBody.slice(0, 100) || uploadRes.statusText}`)
       }
 
       setUploading(prev => prev.filter(u => u.id !== id))
       setFiles(prev => [...prev, { name: data.fileName, size: file.size, created: new Date().toISOString() }])
     } catch (err) {
+      console.error('Upload error:', err)
       setUploading(prev => prev.map(u => u.id === id ? { ...u, error: err.message } : u))
     }
   }
