@@ -1,4 +1,5 @@
-import { NextResponse, headers } from 'next/server'
+import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resend, FROM_EMAIL } from '@/lib/resend'

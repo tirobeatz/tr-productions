@@ -1,4 +1,5 @@
-import { NextResponse, headers } from 'next/server'
+import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rate-limit'
 
