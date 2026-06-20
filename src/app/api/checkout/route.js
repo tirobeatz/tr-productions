@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { rateLimit } from '@/lib/rate-limit'
 
 const LICENSE_DETAILS = {
   mp3: { name: 'MP3 Lease', description: 'MP3 file with up to 50,000 streams. 20% publishing split to producer.' },
@@ -17,6 +18,16 @@ function getSiteUrl() {
 
 export async function POST(request) {
   try {
+    // Rate limit per IP to curb abuse / runaway Stripe session creation
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+    const { limited } = rateLimit({ key: `checkout:${ip}`, limit: 10, window: 60 * 1000 })
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const body = await request.json()
 
     if (body.serviceType) {

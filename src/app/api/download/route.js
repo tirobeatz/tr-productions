@@ -2,9 +2,20 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { verifyDownloadToken } from '@/lib/download-token'
 import { LICENSE_DETAILS } from '@/lib/stripe'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function GET(request) {
   try {
+    // Rate limit per IP to prevent download-token brute force / abuse
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+    const { limited } = rateLimit({ key: `download:${ip}`, limit: 20, window: 60 * 1000 })
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
     const fileType = searchParams.get('file') // mp3, wav, or stems

@@ -37,18 +37,19 @@ export function PageLoaderProvider({ children }) {
       return
     }
 
-    // Simple timed loading - no Supabase dependency
+    // Simple timed loading - no Supabase dependency.
+    // Kept short on purpose (only shown once per session via tr-visited).
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(progressInterval)
           return 100
         }
-        return prev + 5
+        return prev + 10
       })
-    }, 40)
+    }, 30)
 
-    // Complete after ~800ms
+    // Complete after ~600ms (full intro stays under ~1s incl. fade-out)
     const timer = setTimeout(() => {
       clearInterval(progressInterval)
       setProgress(100)
@@ -58,8 +59,8 @@ export function PageLoaderProvider({ children }) {
       } catch (e) {}
 
       setIsLoaded(true)
-      setTimeout(() => setShowContent(true), 200)
-    }, 800)
+      setTimeout(() => setShowContent(true), 150)
+    }, 600)
 
     return () => {
       clearInterval(progressInterval)
@@ -74,7 +75,7 @@ export function PageLoaderProvider({ children }) {
           <motion.div
             key="loader"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.4, ease: 'easeInOut' } }}
+            exit={{ opacity: 0, transition: { duration: 0.3, ease: 'easeInOut' } }}
             className="fixed inset-0 z-[99999] bg-[#050505] flex flex-col items-center justify-center"
           >
             {/* Logo */}
