@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import Header from '@/app/components/Header'
@@ -8,10 +9,13 @@ import Footer from '@/app/components/Footer'
 import Background from '@/app/components/Background'
 import { BeatTiltCard, FadeUp, StaggerChildren } from '@/app/components/animations'
 import { useT, useLocale } from '@/i18n/I18nProvider'
+import { getLowestPrice } from '@/lib/licenses'
+import { buildBeatPath } from '@/lib/beat-url'
 
 export default function BeatsPage() {
   const t = useT()
   const locale = useLocale()
+  const router = useRouter()
   const [isMobile, setIsMobile] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [beats, setBeats] = useState([])
@@ -24,17 +28,12 @@ export default function BeatsPage() {
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedBeat, setSelectedBeat] = useState(null)
-  const [selectedLicense, setSelectedLicense] = useState(null)
   const [favorites, setFavorites] = useState([])
   const [showCopied, setShowCopied] = useState(null)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [volume, setVolume] = useState(1)
   const [notepadBeat, setNotepadBeat] = useState(null)
   const [lyrics, setLyrics] = useState({})
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [checkoutEmail, setCheckoutEmail] = useState('')
-  const [emailError, setEmailError] = useState('')
 
   const audioRef = useRef(null)
   const progressRef = useRef(null)
@@ -42,14 +41,8 @@ export default function BeatsPage() {
   const genres = ['All', 'Trap', 'Drill', 'R&B', 'Jersey', 'Rap']
   const allTags = ['dark', 'melodic', 'hard', 'emotional', 'bouncy', 'chill', 'aggressive', 'smooth', 'sad']
 
-  // License tier names (MP3 Lease, WAV Lease, Stems, Exclusive) are kept as
-  // industry-standard English terms; only the feature bullets are translated.
-  const licenses = [
-    { id: 'mp3', name: 'MP3 Lease', priceKey: 'price_mp3', features: [t('beats.license.features.mp3File'), t('beats.license.features.streams50k'), t('beats.license.features.creditProducer'), t('beats.license.features.nonExclusive'), t('beats.license.features.split20')] },
-    { id: 'wav', name: 'WAV Lease', priceKey: 'price_wav', features: [t('beats.license.features.wavMp3'), t('beats.license.features.streams100k'), t('beats.license.features.creditProducer'), t('beats.license.features.nonExclusive'), t('beats.license.features.split20')] },
-    { id: 'unlimited', name: 'Stems', priceKey: 'price_stems', features: [t('beats.license.features.wavMp3Stems'), t('beats.license.features.streams250k'), t('beats.license.features.video1'), t('beats.license.features.nonExclusive'), t('beats.license.features.split20')] },
-    { id: 'exclusive', name: 'Exclusive', priceKey: 'price_exclusive', features: [t('beats.license.features.fullMaster'), t('beats.license.features.unlimitedStreams'), t('beats.license.features.removedFromStore'), t('beats.license.features.split20'), t('beats.license.features.unlimitedVideos')], highlight: true }
-  ]
+  // Navigate to a beat's dedicated detail page (purchase happens there now).
+  const goToBeat = (beat) => router.push(buildBeatPath(locale, beat))
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
@@ -60,6 +53,15 @@ export default function BeatsPage() {
     const savedLyrics = localStorage.getItem('tr-lyrics')
     if (savedLyrics) setLyrics(JSON.parse(savedLyrics))
   }, [])
+
+  // Backward-compat: old shared links (/<locale>/beats?id=<uuid>) → detail page.
+  useEffect(() => {
+    if (typeof window === 'undefined' || beats.length === 0) return
+    const id = new URLSearchParams(window.location.search).get('id')
+    if (!id) return
+    const beat = beats.find((b) => b.id === id)
+    if (beat) router.replace(buildBeatPath(locale, beat))
+  }, [beats, locale, router])
 
   const fetchBeats = async () => {
     setLoading(true)
@@ -89,7 +91,6 @@ export default function BeatsPage() {
   }, [])
 
   useEffect(() => { if (audioRef.current) audioRef.current.volume = volume }, [volume])
-  useEffect(() => { document.body.style.overflow = selectedBeat ? 'hidden' : 'unset'; return () => { document.body.style.overflow = 'unset' } }, [selectedBeat])
 
   const filteredBeats = beats.filter(b => {
     const matchGenre = activeGenre === 'All' || b.genre === activeGenre
@@ -101,33 +102,6 @@ export default function BeatsPage() {
 
   const formatTime = (s) => isNaN(s) || s === Infinity ? '0:00' : `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
   const formatPrice = (p) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(p)
-
-  // Check if a license is available (has price set AND required files)
-  const isLicenseAvailable = (beat, licenseId) => {
-    const hasFile = (url) => url && url.trim() !== ''
-    switch (licenseId) {
-      case 'mp3':
-        return beat.price_mp3 != null && beat.price_mp3 >= 0 && hasFile(beat.mp3_url)
-      case 'wav':
-        return beat.price_wav != null && beat.price_wav >= 0 && hasFile(beat.wav_url)
-      case 'unlimited': // Stems
-        return beat.price_stems != null && beat.price_stems >= 0 && hasFile(beat.stems_url)
-      case 'exclusive':
-        // Exclusive needs price and at least one downloadable file
-        return beat.price_exclusive != null && beat.price_exclusive > 0 && (hasFile(beat.mp3_url) || hasFile(beat.wav_url))
-      default:
-        return false
-    }
-  }
-
-  const getLowestPrice = (beat) => {
-    const availablePrices = []
-    if (isLicenseAvailable(beat, 'mp3')) availablePrices.push(beat.price_mp3)
-    if (isLicenseAvailable(beat, 'wav')) availablePrices.push(beat.price_wav)
-    if (isLicenseAvailable(beat, 'unlimited')) availablePrices.push(beat.price_stems)
-    if (isLicenseAvailable(beat, 'exclusive')) availablePrices.push(beat.price_exclusive)
-    return availablePrices.length > 0 ? Math.min(...availablePrices) : null
-  }
 
   const handlePlay = (beat) => {
     if (!beat.audio_url) return
@@ -159,24 +133,10 @@ export default function BeatsPage() {
 
   const handleShare = async (beat) => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/${locale}/beats?id=${beat.id}`)
+      await navigator.clipboard.writeText(`${window.location.origin}${buildBeatPath(locale, beat)}`)
       setShowCopied(beat.id)
       setTimeout(() => setShowCopied(null), 2000)
     } catch (err) { console.error('Failed to copy:', err) }
-  }
-
-  const handleBuyClick = (beat) => {
-    if (beat.is_sold) return // Don't allow buying sold beats
-    setSelectedBeat(beat)
-    setSelectedLicense(null)
-    setCheckoutEmail('')
-    setEmailError('')
-  }
-  const handleCloseModal = () => {
-    setSelectedBeat(null)
-    setSelectedLicense(null)
-    setCheckoutEmail('')
-    setEmailError('')
   }
 
   const openNotepad = (beat) => {
@@ -194,76 +154,6 @@ export default function BeatsPage() {
     a.download = `${beat.title.replace(/\s+/g, '_')}_lyrics.txt`
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return re.test(email)
-  }
-
-  const handleCheckout = async () => {
-    if (!selectedBeat || !selectedLicense) return
-
-    // Validate email
-    if (!checkoutEmail.trim()) {
-      setEmailError(t('beats.checkout.errEmailRequired'))
-      return
-    }
-    if (!validateEmail(checkoutEmail)) {
-      setEmailError(t('beats.checkout.errEmailInvalid'))
-      return
-    }
-
-    setEmailError('')
-    setCheckoutLoading(true)
-
-    try {
-      const priceKey = `price_${selectedLicense.id === 'unlimited' ? 'stems' : selectedLicense.id}`
-      const price = selectedBeat[priceKey]
-      const isFree = price != null && price < 0.50
-
-      if (isFree) {
-        // Free beat — skip Stripe, go directly to free download
-        const response = await fetch('/api/free-download', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            beatId: selectedBeat.id,
-            licenseType: selectedLicense.id,
-            customerEmail: checkoutEmail
-          })
-        })
-
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || t('beats.checkout.errDownload'))
-        window.location.href = data.redirectUrl
-      } else {
-        // Paid beat — use Stripe checkout
-        const response = await fetch('/api/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            beatId: selectedBeat.id,
-            licenseType: selectedLicense.id,
-            customerEmail: checkoutEmail
-          })
-        })
-
-        const text = await response.text()
-        let data
-        try { data = JSON.parse(text) } catch { throw new Error(t('beats.checkout.errServer')) }
-
-        if (!response.ok) throw new Error(data.error || t('beats.checkout.errCheckout'))
-        if (!data.url) throw new Error(t('beats.checkout.errNoUrl'))
-
-        window.location.href = data.url
-      }
-    } catch (error) {
-      console.error('Checkout error:', error)
-      setEmailError(error.message || t('beats.checkout.errGeneric'))
-    } finally {
-      setCheckoutLoading(false)
-    }
   }
 
   const clearFilters = () => { setSearchQuery(''); setActiveGenre('All'); setActiveTag(null); setShowFavoritesOnly(false) }
@@ -335,7 +225,7 @@ export default function BeatsPage() {
                 {filteredBeats.map((beat) => (
                   <BeatTiltCard key={beat.id} className="group overflow-hidden">
                     {/* Cover */}
-                    <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] relative cursor-pointer overflow-hidden" onClick={() => handlePlay(beat)}>
+                    <div className="aspect-square bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] relative cursor-pointer overflow-hidden" onClick={() => goToBeat(beat)}>
                       {beat.image_url ? (
                         <Image src={beat.image_url} alt={beat.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" />
                       ) : (
@@ -363,11 +253,15 @@ export default function BeatsPage() {
                         </button>
                       </div>
 
-                      {/* Play Overlay */}
-                      <div className={`absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-300 ${currentBeat?.id === beat.id && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                        <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform">
+                      {/* Play Overlay (preview — stops navigation) */}
+                      <div className={`absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-300 pointer-events-none ${currentBeat?.id === beat.id && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handlePlay(beat) }}
+                          className="pointer-events-auto w-10 h-10 md:w-14 md:h-14 bg-white rounded-full flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform"
+                          aria-label="Play preview"
+                        >
                           {currentBeat?.id === beat.id && isPlaying ? <span className="text-black text-sm md:text-xl">❚❚</span> : <span className="text-black text-sm md:text-xl ml-0.5">▶</span>}
-                        </div>
+                        </button>
                       </div>
 
                       {/* Playing Indicator */}
@@ -381,7 +275,7 @@ export default function BeatsPage() {
                     {/* Info */}
                     <div className="p-2 md:p-5">
                       {/* Title row */}
-                      <h3 className="font-semibold text-xs md:text-base truncate mb-0.5 md:mb-1">{beat.title}</h3>
+                      <h3 onClick={() => goToBeat(beat)} className="font-semibold text-xs md:text-base truncate mb-0.5 md:mb-1 cursor-pointer hover:text-[#8B5CF6] transition-colors">{beat.title}</h3>
 
                       {/* Genre + BPM row */}
                       <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
@@ -419,7 +313,7 @@ export default function BeatsPage() {
                             {t('beats.card.soldBtn')}
                           </span>
                         ) : getLowestPrice(beat) !== null ? (
-                          <button onClick={() => handleBuyClick(beat)}
+                          <button onClick={() => goToBeat(beat)}
                             className={`px-2.5 md:px-4 py-0.5 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition ${getLowestPrice(beat) < 0.50 ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-white text-black hover:bg-gray-200'}`}>
                             {getLowestPrice(beat) < 0.50 ? t('beats.card.getFree') : t('beats.card.buy')}
                           </button>
@@ -502,162 +396,6 @@ export default function BeatsPage() {
         </div>
       )}
 
-      {/* License Modal */}
-      {selectedBeat && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleCloseModal} />
-          <div className="relative bg-[#0a0a0a] border border-white/10 rounded-2xl md:rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <button onClick={handleCloseModal} className="absolute top-3 right-3 md:top-6 md:right-6 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition z-10">
-              <span className="text-base md:text-xl">✕</span>
-            </button>
-            <div className="p-4 md:p-8">
-              {/* Beat Info */}
-              <div className="flex items-center gap-3 md:gap-6 mb-5 md:mb-8 pb-5 md:pb-8 border-b border-white/10">
-                <div className="w-14 h-14 md:w-24 md:h-24 bg-gradient-to-br from-[#8B5CF6]/20 to-[#050505] rounded-lg md:rounded-xl flex-shrink-0 overflow-hidden relative">
-                  {selectedBeat.image_url ? <Image src={selectedBeat.image_url} alt={selectedBeat.title} fill className="object-cover" sizes="96px" /> : <div className="w-full h-full flex items-center justify-center"><span className="text-xl md:text-4xl">🎵</span></div>}
-                </div>
-                <div>
-                  <h2 className="text-lg md:text-2xl font-bold mb-1">{selectedBeat.title}</h2>
-                  <p className="text-gray-500 text-xs md:text-base">{selectedBeat.genre} • {selectedBeat.bpm} BPM • {selectedBeat.key}</p>
-                </div>
-              </div>
-
-              {/* Licenses */}
-              <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-6">{t('beats.license.select')}</h3>
-              {(() => {
-                const availableLicenses = licenses.filter(lic => isLicenseAvailable(selectedBeat, lic.id))
-
-                if (availableLicenses.length === 0) {
-                  return (
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center mb-5 md:mb-8">
-                      <span className="text-3xl mb-3 block">🚫</span>
-                      <p className="text-gray-400">{t('beats.license.none')}</p>
-                      <p className="text-gray-500 text-sm mt-1">{t('beats.license.contactPricing')}</p>
-                    </div>
-                  )
-                }
-
-                return (
-                  <div className={`grid gap-2 md:gap-4 mb-5 md:mb-8 ${availableLicenses.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : availableLicenses.length === 2 ? 'grid-cols-2 max-w-lg mx-auto' : availableLicenses.length === 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
-                    {availableLicenses.map(lic => {
-                      const price = selectedBeat[lic.priceKey]
-                      const isExclusiveSold = lic.id === 'exclusive' && selectedBeat.is_sold
-                      const isDisabled = isExclusiveSold
-
-                      return (
-                        <div
-                          key={lic.id}
-                          onClick={() => !isDisabled && setSelectedLicense(lic)}
-                          className={`relative p-3 md:p-5 rounded-xl md:rounded-2xl border transition-all ${
-                            isDisabled
-                              ? 'border-white/5 bg-white/[0.01] cursor-not-allowed opacity-50'
-                              : selectedLicense?.id === lic.id
-                              ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 cursor-pointer'
-                              : 'border-white/10 bg-white/[0.02] hover:border-white/20 cursor-pointer'
-                          } ${lic.highlight && !isDisabled ? 'ring-1 ring-[#8B5CF6]/50' : ''}`}
-                        >
-                          {isExclusiveSold ? (
-                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{t('beats.license.soldOut')}</span>
-                          ) : lic.highlight ? (
-                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8B5CF6] text-white text-[9px] md:text-xs px-2 py-0.5 rounded-full whitespace-nowrap">{t('beats.license.bestValue')}</span>
-                          ) : null}
-                          <h4 className="font-semibold text-xs md:text-base mb-0.5 md:mb-1">{lic.name}</h4>
-                          <p className={`text-base md:text-2xl font-bold mb-2 md:mb-4 ${isDisabled ? 'line-through text-gray-500' : ''}`}>
-                            {price < 0.50 ? <span className="text-green-400">{t('beats.price.free')}</span> : formatPrice(price)}
-                          </p>
-                          <ul className="space-y-1 md:space-y-2 hidden md:block">
-                            {lic.features.map((f, i) => (
-                              <li key={i} className={`text-xs flex items-start gap-2 ${isDisabled ? 'text-gray-600' : 'text-gray-400'}`}>
-                                <span className={isDisabled ? 'text-gray-600' : 'text-[#8B5CF6]'}>✓</span>
-                                {f}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-
-              {/* Email Input & Checkout */}
-              <div className="pt-4 md:pt-6 border-t border-white/10">
-                {selectedLicense && (
-                  <div className="mb-4">
-                    <label className="block text-sm text-gray-400 mb-2">{t('beats.checkout.emailLabel')}</label>
-                    <input
-                      type="email"
-                      value={checkoutEmail}
-                      onChange={(e) => { setCheckoutEmail(e.target.value); setEmailError('') }}
-                      placeholder="your@email.com"
-                      className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-base md:text-sm placeholder-gray-500 focus:outline-none transition ${
-                        emailError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-[#8B5CF6]/50'
-                      }`}
-                    />
-                    {emailError && <p className="text-red-400 text-xs mt-2">{emailError}</p>}
-                    <p className="text-gray-600 text-xs mt-2">{t('beats.checkout.emailHint')}</p>
-                  </div>
-                )}
-
-                <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
-                  <div>
-                    {selectedLicense && (
-                      <p className="text-gray-400 text-sm">{t('beats.checkout.total')} <span className="text-white font-bold text-lg md:text-xl">
-                        {selectedBeat[selectedLicense.priceKey] < 0.50 ? <span className="text-green-400">{t('beats.price.free')}</span> : formatPrice(selectedBeat[selectedLicense.priceKey])}
-                      </span></p>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleCheckout}
-                    disabled={!selectedLicense || checkoutLoading}
-                    className={`w-full md:w-auto px-6 md:px-8 py-2.5 md:py-3 rounded-full font-semibold transition text-sm md:text-base flex items-center justify-center gap-2 ${
-                      selectedLicense && !checkoutLoading
-                        ? selectedBeat[selectedLicense?.priceKey] < 0.50
-                          ? 'bg-green-500 hover:bg-green-600 text-white'
-                          : 'bg-[#8B5CF6] hover:bg-[#7C3AED] text-white'
-                        : 'bg-white/10 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {checkoutLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        {t('beats.checkout.processing')}
-                      </>
-                    ) : selectedLicense ? (
-                      selectedBeat[selectedLicense.priceKey] < 0.50 ? (
-                        <>
-                          <span>🎁</span>
-                          {t('beats.checkout.getFree')}
-                        </>
-                      ) : (
-                        <>
-                          <span>💳</span>
-                          {t('beats.checkout.proceed')}
-                        </>
-                      )
-                    ) : (
-                      t('beats.checkout.selectLicense')
-                    )}
-                  </button>
-                </div>
-
-                {/* Payment Methods Note */}
-                {selectedLicense && selectedBeat[selectedLicense.priceKey] >= 0.50 && (
-                  <p className="text-center text-gray-600 text-xs mt-4">
-                    {t('beats.checkout.stripeNote')}
-                  </p>
-                )}
-                {selectedLicense && selectedBeat[selectedLicense.priceKey] < 0.50 && (
-                  <p className="text-center text-gray-600 text-xs mt-4">
-                    {t('beats.checkout.freeNote')}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Audio Player */}
       {currentBeat && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 safe-area-bottom">
@@ -688,7 +426,7 @@ export default function BeatsPage() {
                   {isPlaying ? <span className="text-black text-xs">❚❚</span> : <span className="text-black text-xs ml-0.5">▶</span>}
                 </button>
                 {getLowestPrice(currentBeat) ? (
-                  <button onClick={() => handleBuyClick(currentBeat)} className="bg-[#8B5CF6] px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0">{t('beats.card.buy')}</button>
+                  <button onClick={() => goToBeat(currentBeat)} className="bg-[#8B5CF6] px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0">{t('beats.card.buy')}</button>
                 ) : (
                   <a href="mailto:contact@trproductions.de" className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0">{t('beats.card.contact')}</a>
                 )}
@@ -735,7 +473,7 @@ export default function BeatsPage() {
                       <span className="text-gray-500 text-xs font-normal">{t('beats.price.from')}</span>
                       {formatPrice(getLowestPrice(currentBeat))}
                     </span>
-                    <button onClick={() => handleBuyClick(currentBeat)} className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-5 py-2 rounded-full text-sm font-medium transition">{t('beats.card.buyNow')}</button>
+                    <button onClick={() => goToBeat(currentBeat)} className="bg-[#8B5CF6] hover:bg-[#7C3AED] px-5 py-2 rounded-full text-sm font-medium transition">{t('beats.card.buyNow')}</button>
                   </>
                 ) : (
                   <a href="mailto:contact@trproductions.de" className="bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full text-sm font-medium transition">{t('beats.card.contact')}</a>

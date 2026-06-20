@@ -631,5 +631,12 @@
       "label": "Legal",
       "title": "Terms & Conditions"
     }
+  },
+  "beatDetail": {
+    "backToStore": "Back to Store",
+    "share": "Share",
+    "copied": "Link copied!",
+    "preview": "Preview",
+    "sold": "This beat has been sold exclusively."
   }
 }

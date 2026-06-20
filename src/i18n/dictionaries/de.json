@@ -631,5 +631,12 @@
       "label": "Rechtliches",
       "title": "AGB"
     }
+  },
+  "beatDetail": {
+    "backToStore": "Zurück zum Store",
+    "share": "Teilen",
+    "copied": "Link kopiert!",
+    "preview": "Vorschau",
+    "sold": "Dieser Beat wurde exklusiv verkauft."
   }
 }
