@@ -1,0 +1,635 @@
+{
+  "common": {
+    "brand": "TR Productions",
+    "language": "Sprache",
+    "switchToGerman": "Auf Deutsch wechseln",
+    "switchToEnglish": "Auf Englisch wechseln",
+    "loading": "Lädt …"
+  },
+  "nav": {
+    "beats": "Beats",
+    "mixing": "Mix & Master",
+    "studio": "Studio",
+    "about": "Über mich",
+    "contact": "Kontakt"
+  },
+  "footer": {
+    "tagline": "Professionelle Beats, Mixing & Mastering",
+    "location": "Trier, Deutschland",
+    "servicesTitle": "Leistungen",
+    "beatStore": "Beat Store",
+    "mixMaster": "Mix & Master",
+    "studioSessions": "Studio-Sessions",
+    "companyTitle": "Mehr",
+    "about": "Über mich",
+    "contact": "Kontakt",
+    "legalTitle": "Rechtliches",
+    "impressum": "Impressum",
+    "privacy": "Datenschutz",
+    "terms": "AGB",
+    "allRightsReserved": "Alle Rechte vorbehalten."
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "description": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "backHome": "Zur Startseite",
+    "browseBeats": "Beats entdecken"
+  },
+  "home": {
+    "hero": {
+      "label": "Musikproduzent",
+      "subtitle": "Sound auf Industrieniveau – gemacht, um aufzufallen.",
+      "ctaBeats": "Beats entdecken",
+      "ctaStudio": "Studio-Session buchen",
+      "statBeats": "Beats",
+      "statArtists": "Artists",
+      "statYears": "Jahre",
+      "scroll": "Scroll"
+    },
+    "player": {
+      "nowPlaying": "Läuft gerade",
+      "featured": "Featured",
+      "play": "Play",
+      "pause": "Pause",
+      "lease": "Lease",
+      "buyNow": "Jetzt kaufen",
+      "noBeats": "Keine Beats verfügbar"
+    },
+    "services": {
+      "label": "Leistungen",
+      "title": "Was ich biete",
+      "subtitle": "Alles, was du brauchst, um deine musikalische Vision umzusetzen",
+      "beatStore": {
+        "title": "Beat Store",
+        "desc": "Exklusive Beats, gemacht für deinen Sound. Sofort-Download mit mehreren Lizenzoptionen.",
+        "cta": "Beats entdecken"
+      },
+      "mixMaster": {
+        "title": "Mix & Master",
+        "desc": "Professionelles Mixing & Mastering, das deine Tracks radiotauglich macht. Schnelle Online-Lieferung.",
+        "cta": "Mehr erfahren"
+      },
+      "studio": {
+        "title": "Studio-Sessions",
+        "desc": "Buch dir Zeit in meinem professionellen Studio in Trier. Recording, Produktion und kreative Sessions.",
+        "cta": "Session buchen"
+      }
+    },
+    "latest": {
+      "label": "Neueste Beats",
+      "title": "Frisch aus dem Lab",
+      "viewAll": "Alle Beats ansehen",
+      "view": "Ansehen",
+      "empty": "Noch keine Beats verfügbar"
+    },
+    "testimonials": {
+      "label": "Stimmen",
+      "title": "Was Artists sagen"
+    },
+    "cta": {
+      "title": "Bereit, was zu erschaffen?",
+      "subtitle": "Lass uns zusammen deine Vision zum Leben erwecken.",
+      "browseBeats": "Beats entdecken",
+      "contact": "Kontakt aufnehmen"
+    },
+    "releases": {
+      "label": "Produktionen",
+      "title": "Ausgewählte Releases",
+      "subtitle": "Tracks, die ich produziert habe. Hör rein auf Spotify.",
+      "viewAll": "Alle Produktionen ansehen"
+    }
+  },
+  "beats": {
+    "hero": {
+      "label": "Beat Store",
+      "title": "Beats entdecken",
+      "subtitle": "Finde deinen nächsten Hit. Alle Beats sind industry-ready und sofort verfügbar."
+    },
+    "filters": {
+      "all": "Alle"
+    },
+    "search": {
+      "placeholder": "Beats suchen …"
+    },
+    "loading": "Beats werden geladen …",
+    "empty": {
+      "title": "Keine Beats gefunden.",
+      "clear": "Filter zurücksetzen"
+    },
+    "card": {
+      "sold": "VERKAUFT",
+      "noAudio": "Kein Audio",
+      "featured": "Featured",
+      "copied": "Kopiert!",
+      "writeLyrics": "Lyrics schreiben",
+      "buy": "Kaufen",
+      "buyNow": "Jetzt kaufen",
+      "getFree": "Gratis holen",
+      "soldBtn": "Verkauft",
+      "contact": "Anfragen"
+    },
+    "price": {
+      "from": "ab ",
+      "free": "Gratis"
+    },
+    "notepad": {
+      "title": "Lyrics-Notizblock",
+      "download": "Herunterladen",
+      "placeholder": "Schreib hier deine Lyrics …",
+      "autoSaved": "Automatisch gespeichert",
+      "chars": "Zeichen"
+    },
+    "license": {
+      "select": "Lizenz wählen",
+      "none": "Für diesen Beat sind keine Lizenzen verfügbar.",
+      "contactPricing": "Bitte kontaktiere uns für Preise.",
+      "soldOut": "Ausverkauft",
+      "bestValue": "Bestes Angebot",
+      "features": {
+        "mp3File": "MP3-Datei (320 kbps)",
+        "wavMp3": "WAV- + MP3-Dateien",
+        "wavMp3Stems": "WAV + MP3 + Stems",
+        "streams50k": "Bis zu 50.000 Streams",
+        "streams100k": "Bis zu 100.000 Streams",
+        "streams250k": "Bis zu 250.000 Streams",
+        "creditProducer": "Producer-Credit erforderlich",
+        "nonExclusive": "Nicht-exklusive Rechte",
+        "split20": "20 % Publishing-Anteil",
+        "video1": "1 Musikvideo erlaubt",
+        "fullMaster": "Volle Master-Rechte",
+        "unlimitedStreams": "Unbegrenzte Streams/Verkäufe",
+        "removedFromStore": "Beat wird aus dem Store entfernt",
+        "unlimitedVideos": "Unbegrenzte Musikvideos"
+      }
+    },
+    "checkout": {
+      "emailLabel": "E-Mail für die Lieferung",
+      "emailHint": "Download-Link und Lizenz werden an diese E-Mail gesendet.",
+      "total": "Gesamt:",
+      "processing": "Wird verarbeitet …",
+      "getFree": "Gratis-Download holen",
+      "proceed": "Zur Kasse",
+      "selectLicense": "Lizenz auswählen",
+      "stripeNote": "Sicherer Checkout über Stripe. Zahle per Karte, Apple Pay oder Google Pay.",
+      "freeNote": "Der Download-Link wird an deine E-Mail gesendet.",
+      "errEmailRequired": "Bitte gib deine E-Mail-Adresse ein",
+      "errEmailInvalid": "Bitte gib eine gültige E-Mail-Adresse ein",
+      "errGeneric": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+      "errServer": "Serverfehler. Bitte versuch es erneut.",
+      "errDownload": "Download konnte nicht abgerufen werden",
+      "errCheckout": "Checkout konnte nicht erstellt werden",
+      "errNoUrl": "Keine Checkout-URL erhalten. Bitte versuch es erneut."
+    }
+  },
+  "mixing": {
+    "hero": {
+      "label": "Online-Mixing-Service",
+      "titlePre": "Bring deinen Track auf",
+      "titleHighlight": "Pro-Niveau",
+      "subtitle": "Professionelles Mixing & Mastering für Artists, die radiotauglichen Sound wollen. Schick deine Files, bekomm einen polierten Track zurück.",
+      "ctaStart": "Loslegen",
+      "ctaHow": "So funktioniert's"
+    },
+    "trust": {
+      "fastTitle": "Schnelle Lieferung",
+      "fastSub": "2-3 Tage",
+      "revisionTitle": "Gratis-Revision",
+      "revisionSub": "1 inklusive",
+      "contactTitle": "Direkter Kontakt",
+      "contactSub": "Kein Mittelsmann",
+      "satisfactionTitle": "Zufriedenheit",
+      "satisfactionSub": "Garantiert"
+    },
+    "player": {
+      "before": "Vorher & Nachher",
+      "hear": "Hör den Unterschied",
+      "raw": "Roh",
+      "mixed": "Mixed",
+      "proMix": "Professioneller Mix",
+      "unprocessed": "Unbearbeitetes Audio",
+      "demoSoon": "Demo-Audio folgt in Kürze"
+    },
+    "stats": {
+      "tracksMixed": "Tracks gemischt",
+      "happyArtists": "Zufriedene Artists",
+      "avgDelivery": "Ø Lieferzeit",
+      "satisfaction": "Zufriedenheit"
+    },
+    "why": {
+      "label": "Der Unterschied",
+      "title": "Warum mit mir arbeiten",
+      "subtitle": "Nicht einfach noch ein Mixing-Service. Das macht den Unterschied.",
+      "personalTitle": "Persönliche Betreuung",
+      "personalDesc": "Keine große Studio-Fabrik. Ich arbeite persönlich an jedem Track.",
+      "personalHighlight": "Jeder Mix bekommt meinen vollen Fokus",
+      "directTitle": "Direkter Kontakt",
+      "directDesc": "Kein Mittelsmann, keine tagelange Warterei auf Antworten.",
+      "directHighlight": "Immer schnelle Antworten",
+      "genreTitle": "Genre-Expertise",
+      "genreDesc": "Ich höre selbst täglich Hip-Hop, Trap, Drill und R&B.",
+      "genreHighlight": "Ich verstehe den Sound, den du willst",
+      "fairTitle": "Fair & transparent",
+      "fairDesc": "Ein Preis, keine versteckten Kosten, keine Upsells.",
+      "fairHighlight": "Nur €150 pro Track"
+    },
+    "genres": {
+      "label": "Spezialgebiete",
+      "title": "Genres, die ich mixe",
+      "subtitle": "Jedes Genre hat seinen eigenen Sound. Ich weiß, was jedes davon knallen lässt.",
+      "hiphop": "Druckvolle Drums, knackige 808s, klare Vocals",
+      "trap": "Fetter Bass, scharfe Hi-Hats, atmosphärische Vibes",
+      "drill": "Gleitende 808s, dunkle Melodien, aggressive Energie",
+      "rnb": "Smoothe Vocals, warme Klänge, üppige Harmonien",
+      "pop": "Radiotauglicher Feinschliff, hell und druckvoll",
+      "afrobeat": "Rhythmische Percussion, lebendige Energie"
+    },
+    "process": {
+      "label": "Der Ablauf",
+      "title": "Von roh zu radiotauglich",
+      "subtitle": "Einfacher 5-Schritte-Prozess. Du schickst die Files, ich liefere Hits.",
+      "uploadTitle": "Upload",
+      "uploadDesc": "Schick deine Files über das Formular oder WeTransfer",
+      "reviewTitle": "Prüfung",
+      "reviewDesc": "Ich höre rein und bestätige die Projektdetails",
+      "mixTitle": "Mix",
+      "mixDesc": "Balancing, EQ, Kompression, Effekte",
+      "masterTitle": "Master",
+      "masterDesc": "Letzter Feinschliff und Lautheits-Optimierung",
+      "deliverTitle": "Lieferung",
+      "deliverDesc": "Du bekommst WAV- + MP3-Dateien",
+      "day1": "Tag 1",
+      "day2": "Tag 2",
+      "day23": "Tag 2-3",
+      "day3": "Tag 3"
+    },
+    "recent": {
+      "label": "Portfolio",
+      "title": "Aktuelle Mixes",
+      "playing": "Läuft"
+    },
+    "releases": {
+      "label": "Produktionen",
+      "title": "Meine Releases",
+      "subtitle": "Tracks, die ich produziert und gemischt habe. Hör rein auf Spotify.",
+      "featured": "Featured",
+      "more": "Mehr auf Spotify"
+    },
+    "pricing": {
+      "perTrack": "pro Track",
+      "standard": "Standard",
+      "standardTime": "2-3 Werktage",
+      "included": "Inklusive",
+      "rush": "Rush",
+      "rushTime": "24-48 Stunden",
+      "f1": "Komplettes Mixing & Mastering",
+      "f2": "WAV- + MP3-Lieferung",
+      "f3": "1 Revision inklusive",
+      "f4": "Direkter Kontakt",
+      "f5": "Streaming-fertiges Format",
+      "discount": "15% Rabatt ab 5 Tracks"
+    },
+    "cta": {
+      "getStartedNow": "Jetzt loslegen"
+    },
+    "reviews": {
+      "label": "Reviews",
+      "title": "Artists lieben es"
+    },
+    "form": {
+      "label": "Los geht's",
+      "title": "Schick deinen Track",
+      "subtitle": "Füll das Formular aus und ich melde mich innerhalb von 24 Stunden.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Dein Name",
+      "emailLabel": "E-Mail",
+      "trackLabel": "Track-Name",
+      "trackPlaceholder": "Songtitel",
+      "genreLabel": "Genre",
+      "genrePlaceholder": "Genre wählen",
+      "genreOther": "Andere",
+      "refLabel": "Referenz-Track (optional)",
+      "refPlaceholder": "Link zu einem Song mit ähnlichem Vibe",
+      "notesLabel": "Notizen",
+      "notesPlaceholder": "Besondere Wünsche …",
+      "rushTitle": "Express-Lieferung",
+      "rushDesc": "Dein Mix in 24-48 Stunden",
+      "priceLabel": "Preis",
+      "priceNote": "Keine Zahlung jetzt — Rechnung nach Lieferung",
+      "submitting": "Wird gesendet …",
+      "submit": "Anfrage senden",
+      "filesNote": "Nach dem Absenden schick deine Files an mixmaster@trproductions.de oder per WeTransfer",
+      "errSubmit": "Senden fehlgeschlagen. Bitte versuch es erneut."
+    },
+    "success": {
+      "title": "Anfrage gesendet!",
+      "text": "Ich schaue mir dein Projekt an und melde mich innerhalb von 24 Stunden.",
+      "filesTo": "Schick deine Audio-Dateien an:"
+    },
+    "faq": {
+      "label": "FAQ",
+      "title": "Fragen?",
+      "q1": "Welche Files muss ich schicken?",
+      "a1": "Mindestens: deine rohe Vocal-Aufnahme (am besten WAV) und den Beat/das Instrumental. Wenn du Stems hast, umso besser!",
+      "q2": "Wie lange dauert es?",
+      "a2": "Standard-Lieferung sind 2-3 Werktage. Express-Lieferung (24-48 Stunden) gibt es für +€30.",
+      "q3": "Was, wenn ich Änderungen brauche?",
+      "a3": "Eine Revision ist inklusive. Weitere Revisionen kosten je €15.",
+      "q4": "Kannst du Tracks mixen, die woanders aufgenommen wurden?",
+      "a4": "Klar! Solange die Aufnahmen eine ordentliche Qualität haben, kann ich damit arbeiten.",
+      "q5": "Gibt es Mengenrabatte?",
+      "a5": "Ja! Für EP-/Album-Projekte (ab 5 Tracks) gibt es 15% Rabatt.",
+      "q6": "Was bekomme ich am Ende?",
+      "a6": "Du bekommst den finalen Mix in WAV- + MP3-Format. Bereit für Spotify, Apple Music usw."
+    },
+    "final": {
+      "title": "Bereit für Pro-Sound?",
+      "subtitlePre": "Schick deinen Track noch heute. Professioneller Mix und Master für nur"
+    }
+  },
+  "studio": {
+    "hero": {
+      "label": "Tonstudio in Trier",
+      "titlePre": "Nimm auf bei",
+      "subtitle": "Gemütlicher Kreativraum, persönliche Betreuung und professionelle Ergebnisse.",
+      "ctaRequest": "Session anfragen",
+      "ctaPricing": "Preise ansehen"
+    },
+    "pricing": {
+      "label": "Einfache Preise",
+      "title": "Keine versteckten Kosten",
+      "recTitle": "Aufnahme-Session",
+      "recSub": "Engineer inklusive",
+      "mixSub": "Pro Track",
+      "unitHour": "Stunde",
+      "unitTrack": "Track",
+      "recBadgePre": "Ab 5 Std. =",
+      "mixBadge": "Mit deiner Session oder separat buchbar",
+      "recF1": "Professionelle Aufnahme",
+      "recF2": "Engineer inklusive",
+      "recF3": "WAV-Dateien",
+      "recF4": "Entspannte Atmosphäre",
+      "mixF1": "Professionelles Mixing",
+      "mixF2": "Mastering inklusive",
+      "mixF3": "Radiotauglich",
+      "mixF4": "1 Revision",
+      "note": "Schick unten eine Anfrage und ich bestätige Verfügbarkeit und den genauen Preis per E-Mail — keine Zahlung online."
+    },
+    "gallery": {
+      "label": "Der Raum",
+      "title": "Wo die Magie passiert"
+    },
+    "expect": {
+      "label": "Deine Session",
+      "title": "Was dich erwartet",
+      "recordingTitle": "Aufnahme",
+      "recordingText": "Professionelle Vocal-Aufnahme mit Anleitung",
+      "engineerTitle": "Engineer",
+      "engineerText": "Ich kümmere mich um die ganze Technik",
+      "filesTitle": "Deine Files",
+      "filesText": "WAV-Format nach der Session",
+      "vibeTitle": "Entspannter Vibe",
+      "vibeText": "Gemütliche Atmosphäre, kein Stress"
+    },
+    "request": {
+      "label": "Jetzt buchen",
+      "title": "Session anfragen",
+      "subtitle": "Sag mir, was du brauchst und wann. Ich melde mich innerhalb von 24 Stunden zur Bestätigung."
+    },
+    "success": {
+      "title": "Anfrage gesendet!",
+      "text": "Ich bestätige Verfügbarkeit und Details innerhalb von 24 Stunden.",
+      "reach": "Oder erreich mich direkt unter:"
+    },
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "Dein Name",
+      "emailLabel": "E-Mail",
+      "phoneLabel": "Telefon (optional)",
+      "phonePlaceholder": "+49 ...",
+      "serviceLabel": "Was brauchst du?",
+      "servicePlaceholder": "Auswählen",
+      "svcRecording": "Aufnahme-Session",
+      "svcRecMix": "Aufnahme + Mix & Master",
+      "svcMixOnly": "Nur Mix & Master",
+      "svcOther": "Andere",
+      "timeLabel": "Wunschtermin (optional)",
+      "timePlaceholder": "z. B. wochentags nachmittags, nächste Woche",
+      "msgLabel": "Nachricht (optional)",
+      "msgPlaceholder": "Erzähl mir von deinem Projekt …",
+      "sending": "Wird gesendet …",
+      "send": "Anfrage senden",
+      "note": "Keine Zahlung online — wir klären die Details per E-Mail.",
+      "errSend": "Anfrage konnte nicht gesendet werden."
+    },
+    "testimonials": {
+      "label": "Reviews",
+      "title": "Was Artists sagen"
+    },
+    "location": {
+      "label": "Standort",
+      "title": "Studio in Trier",
+      "desc": "Gemütlicher Raum, leicht zu finden, Parkplätze vorhanden.",
+      "country": "Trier, Deutschland",
+      "closed": "Geschlossen"
+    }
+  },
+  "about": {
+    "hero": {
+      "journey": "Mein Weg",
+      "connect": "Vernetz dich"
+    },
+    "easter": {
+      "found": "Du hast ihn gefunden!",
+      "unlocked": "Geheimer Konami-Code freigeschaltet",
+      "close": "Tippe irgendwo zum Schließen"
+    },
+    "photos": {
+      "profile": "Profilfoto",
+      "studio": "Im Studio bei der Arbeit"
+    },
+    "timeline": {
+      "label": "Der Weg",
+      "title": "Wie alles begann"
+    },
+    "skills": {
+      "label": "Expertise",
+      "title": "Skills & Tools",
+      "skillsHeading": "Skills",
+      "toolsHeading": "Tools, die ich nutze",
+      "years": "Jahre",
+      "primary": "Haupt-Tool"
+    },
+    "dna": {
+      "label": "Einflüsse",
+      "title": "Meine Musik-DNA"
+    },
+    "day": {
+      "label": "Hinter den Kulissen",
+      "title": "Ein Tag in meinem Leben"
+    },
+    "fun": {
+      "label": "Lern mich kennen",
+      "title": "Schnellfragen",
+      "tapToReveal": "Tippen zum Aufdecken"
+    },
+    "connect": {
+      "label": "Bleib in Kontakt",
+      "title": "Finde mich online"
+    },
+    "cta": {
+      "browseBeats": "Beats entdecken",
+      "bookStudio": "Studio buchen"
+    },
+    "default": {
+      "heroTagline": "Die Geschichte hinter dem Sound",
+      "heroText1": "Producer. Engineer. Artist.",
+      "heroText2": "Beats, die anders knallen.",
+      "heroText3": "Von Trier in die Welt.",
+      "heroText4": "Deine Vision, mein Sound.",
+      "statBeats": "Beats gemacht",
+      "statArtists": "Artists betreut",
+      "statYears": "Jahre Erfahrung",
+      "statProjects": "Projekte abgeschlossen",
+      "tl1Title": "Der Anfang",
+      "tl1Desc": "Hab in meinem Zimmer angefangen, Beats zu machen – nur mit Laptop und FL Studio.",
+      "tl1Milestone": "Allererster Beat",
+      "tl2Title": "Erstes Placement",
+      "tl2Desc": "Mein erstes Placement mit einem lokalen Artist.",
+      "tl2Milestone": "1. offizieller Release",
+      "tl3Title": "Studio-Aufbau",
+      "tl3Desc": "In richtiges Equipment und Akustik investiert.",
+      "tl3Milestone": "Homestudio fertig",
+      "tl4Title": "Online gegangen",
+      "tl4Desc": "Angefangen, Beats online zu verkaufen und Mixing anzubieten.",
+      "tl4Milestone": "100+ Beats verkauft",
+      "tl5Title": "Vollzeit-Producer",
+      "tl5Desc": "Den Sprung gewagt und Vollzeit gemacht. Kein Plan B.",
+      "tl5Milestone": "Vollzeit Musik",
+      "tl6Title": "TR Productions",
+      "tl6Desc": "Die offizielle Marke gelauncht. Das volle Paket.",
+      "tl6Milestone": "Marken-Launch",
+      "skillBeatProduction": "Beat-Produktion",
+      "skillMixing": "Mixing",
+      "skillMastering": "Mastering",
+      "skillSoundDesign": "Sound Design",
+      "skillVocalRecording": "Vocal-Recording",
+      "skillMusicTheory": "Musiktheorie",
+      "day1": "Aufstehen, Kaffee, E-Mails checken",
+      "day2": "Sound Design & Sample-Suche",
+      "day3": "Beat-Making-Session",
+      "day4": "Mittagspause & Social Media",
+      "day5": "Mixing-Projekte für Kunden",
+      "day6": "Studio-Sessions (wenn gebucht)",
+      "day7": "Abendessen & Chillen",
+      "day8": "Kreativ-Session spät nachts",
+      "day9": "Schlafen (manchmal …)",
+      "fact1Front": "Lieblings-DAW?",
+      "fact1Back": "FL Studio forever 🍊",
+      "fact2Front": "Kaffee oder Tee?",
+      "fact2Back": "Kaffee. Schwarz. Immer. ☕",
+      "fact3Front": "Nacht oder Tag?",
+      "fact3Back": "Nachteule – die besten Beats nach Mitternacht 🦉",
+      "fact4Front": "Erstes Instrument?",
+      "fact4Back": "Klavier mit 8 🎹",
+      "fact5Front": "Traum-Collab?",
+      "fact5Back": "Metro Boomin oder Southside 🔥",
+      "fact6Front": "Guilty Pleasure?",
+      "fact6Back": "Lo-fi Beats beim Kochen 🍳",
+      "fact7Front": "Studio-Snack?",
+      "fact7Back": "Gummibärchen. Keine Diskussion. 🐻",
+      "fact8Front": "Beats um 3 Uhr nachts?",
+      "fact8Back": "Zu viele zum Zählen … 😅",
+      "ctaTitle": "Lass uns zusammen was erschaffen",
+      "ctaSubtitle": "Du hast ein Projekt im Kopf? Brauchst einen Beat? Willst eine Session buchen?",
+      "ctaHint": "Psst … auf dieser Seite ist ein geheimer Code versteckt 🎮",
+      "easterDiscount": "10% Rabatt auf deinen nächsten Beat!"
+    }
+  },
+  "contact": {
+    "hero": {
+      "label": "Kontakt",
+      "titlePre": "Lass uns",
+      "titleHighlight": "reden",
+      "subtitle": "Du hast eine Frage? Willst zusammenarbeiten? Oder einfach nur Hallo sagen? Ich freu mich, von dir zu hören."
+    },
+    "methods": {
+      "emailTitle": "E-Mail",
+      "emailDesc": "Am besten für ausführliche Anfragen",
+      "emailTime": "Meist innerhalb von 24 Stunden",
+      "locationTitle": "Standort",
+      "locationValue": "Trier, Deutschland",
+      "locationDesc": "Homestudio-Sessions",
+      "locationTime": "Nur nach Vereinbarung",
+      "igTitle": "Instagram DM",
+      "igDesc": "Schnelle Fragen und Updates",
+      "igTime": "Meist innerhalb weniger Stunden"
+    },
+    "form": {
+      "title": "Schreib mir",
+      "subtitle": "Füll das Formular aus und ich melde mich innerhalb von 24 Stunden.",
+      "successTitle": "Nachricht gesendet!",
+      "successText": "Ich melde mich bald.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Dein Name",
+      "emailLabel": "E-Mail",
+      "subjectLabel": "Betreff",
+      "messageLabel": "Nachricht",
+      "messagePlaceholder": "Erzähl mir von deinem Projekt …",
+      "sending": "Wird gesendet …",
+      "send": "Nachricht senden",
+      "errSend": "Nachricht konnte nicht gesendet werden. Bitte versuch es erneut."
+    },
+    "subjects": {
+      "select": "Thema wählen",
+      "beat": "Beat-Anfrage / Lizenzierung",
+      "studio": "Studio-Session buchen",
+      "mix": "Mix- & Master-Service",
+      "collab": "Kollaboration",
+      "other": "Andere"
+    },
+    "sidebar": {
+      "quickResponse": "Schnelle Antwort",
+      "responseText": "Ich antworte normalerweise innerhalb von 24 Stunden. Bei dringenden Sachen ruf an oder schreib mir eine DM.",
+      "online": "Meistens online",
+      "followMe": "Folge mir",
+      "location": "Standort",
+      "city": "Trier, Deutschland",
+      "locationNote": "Homestudio in Trier. Genaue Adresse nach der Buchung."
+    },
+    "faq": {
+      "label": "FAQ",
+      "title": "Bevor du fragst",
+      "q1": "Wie schnell antwortest du?",
+      "a1": "Ich antworte auf E-Mails normalerweise innerhalb von 24 Stunden. Bei dringenden Sachen ruf an oder schreib mir per Instagram-DM.",
+      "q2": "Kann ich das Studio vor der Buchung besuchen?",
+      "a2": "Klar! Ich biete eine kostenlose 15-minütige Studio-Tour an, damit du dir den Raum vorher ansehen kannst.",
+      "q3": "Bietest du Custom Beats an?",
+      "a3": "Auf jeden Fall. Melde dich und wir besprechen einen Custom Beat, der zu deinem Stil passt.",
+      "q4": "Wie ist deine Rückerstattungsregelung?",
+      "a4": "Beat-Lizenzen sind nicht erstattungsfähig. Studio-Stornierungen mit mindestens 24 Stunden Vorlauf werden voll erstattet.",
+      "q5": "Arbeitest du mit Anfängern?",
+      "a5": "Zu 100%. Jeder fängt mal an. Ich arbeite gern mit neuen Artists."
+    },
+    "cta": {
+      "title": "Bereit loszulegen?",
+      "subtitle": "Egal ob Beats, Studiozeit oder Mixing – ich hab dich abgedeckt.",
+      "browseBeats": "Beats entdecken",
+      "bookStudio": "Studio buchen"
+    }
+  },
+  "legal": {
+    "lastUpdated": "Stand: Januar 2025",
+    "impressum": {
+      "label": "Rechtliche Angaben",
+      "title": "Impressum"
+    },
+    "privacy": {
+      "label": "Rechtliches",
+      "title": "Datenschutzerklärung"
+    },
+    "terms": {
+      "label": "Rechtliches",
+      "title": "AGB"
+    }
+  }
+}

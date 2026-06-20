@@ -2,7 +2,48 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { gsap } from 'gsap'
+import { useT, useLocale } from '@/i18n/I18nProvider'
+import { locales } from '@/i18n/config'
+
+// Swap the leading locale segment of the current path, preserving the rest.
+function localizePath(pathname, target) {
+  const segments = pathname.split('/')
+  if (locales.includes(segments[1])) {
+    segments[1] = target
+    return segments.join('/') || '/'
+  }
+  return `/${target}${pathname === '/' ? '' : pathname}`
+}
+
+// Clean DE/EN toggle that swaps only the locale prefix of the current path.
+function LanguageSwitcher({ className = '' }) {
+  const pathname = usePathname()
+  const locale = useLocale()
+
+  return (
+    <div className={`flex items-center gap-2 text-sm ${className}`}>
+      {locales.map((l, i) => (
+        <span key={l} className="flex items-center gap-2">
+          {i > 0 && <span className="text-gray-700">/</span>}
+          <Link
+            href={localizePath(pathname, l)}
+            hrefLang={l}
+            aria-current={l === locale ? 'true' : undefined}
+            className={`uppercase tracking-wide transition-colors duration-300 ${
+              l === locale
+                ? 'text-white font-medium'
+                : 'text-gray-500 hover:text-white'
+            }`}
+          >
+            {l}
+          </Link>
+        </span>
+      ))}
+    </div>
+  )
+}
 
 // Magnetic nav link component
 function MagneticNavLink({ href, children, onClick }) {
@@ -51,6 +92,17 @@ function MagneticNavLink({ href, children, onClick }) {
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const t = useT()
+  const locale = useLocale()
+
+  // Locale-aware nav targets.
+  const navItems = [
+    { href: `/${locale}/beats`, label: t('nav.beats') },
+    { href: `/${locale}/mixing`, label: t('nav.mixing') },
+    { href: `/${locale}/studio`, label: t('nav.studio') },
+    { href: `/${locale}/about`, label: t('nav.about') },
+    { href: `/${locale}/contact`, label: t('nav.contact') },
+  ]
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,17 +131,18 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
 
           {/* Logo */}
-          <Link href="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
+          <Link href={`/${locale}`} className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
             TR <span className="text-[#8B5CF6]">Productions</span>
           </Link>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-8">
-            <MagneticNavLink href="/beats">Beats</MagneticNavLink>
-            <MagneticNavLink href="/mixing">Mix & Master</MagneticNavLink>
-            <MagneticNavLink href="/studio">Studio</MagneticNavLink>
-            <MagneticNavLink href="/about">About</MagneticNavLink>
-            <MagneticNavLink href="/contact">Contact</MagneticNavLink>
+            {navItems.map((item) => (
+              <MagneticNavLink key={item.href} href={item.href}>
+                {item.label}
+              </MagneticNavLink>
+            ))}
+            <LanguageSwitcher className="ml-2" />
           </div>
 
           {/* Mobile Hamburger Button */}
@@ -110,13 +163,7 @@ export default function Header() {
         menuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
       }`}>
         <div className="flex flex-col items-center justify-center min-h-screen gap-8">
-          {[
-            { href: '/beats', label: 'Beats' },
-            { href: '/mixing', label: 'Mix & Master' },
-            { href: '/studio', label: 'Studio' },
-            { href: '/about', label: 'About' },
-            { href: '/contact', label: 'Contact' },
-          ].map((item, i) => (
+          {navItems.map((item, i) => (
             <Link
               key={item.href}
               href={item.href}
@@ -132,6 +179,19 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+
+          {/* Language Switcher (mobile) */}
+          <div
+            className="mt-4"
+            style={{
+              opacity: menuOpen ? 1 : 0,
+              transform: menuOpen ? 'translateY(0)' : 'translateY(20px)',
+              transition: `all 0.5s ease ${navItems.length * 0.1}s`,
+            }}
+            onClick={() => setMenuOpen(false)}
+          >
+            <LanguageSwitcher className="text-lg" />
+          </div>
         </div>
       </div>
     </>

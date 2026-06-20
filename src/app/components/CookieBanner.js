@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocale } from '@/i18n/I18nProvider'
 
 export default function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const locale = useLocale()
 
   useEffect(() => {
     // Check if user has already made a choice
@@ -99,7 +101,7 @@ export default function CookieBanner() {
 
                         <p className="text-gray-500 text-xs pt-2">
                           For more information, see our{' '}
-                          <a href="/privacy" className="text-[#8B5CF6] hover:underline">Privacy Policy</a>.
+                          <a href={`/${locale}/privacy`} className="text-[#8B5CF6] hover:underline">Privacy Policy</a>.
                         </p>
                       </div>
                     </motion.div>

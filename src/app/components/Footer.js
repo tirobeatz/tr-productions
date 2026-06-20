@@ -1,9 +1,12 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useLocale, useT } from '@/i18n/I18nProvider'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const locale = useLocale()
+  const t = useT()
 
   return (
     <motion.footer
@@ -22,39 +25,39 @@ export default function Footer() {
               TR <span className="text-[#8B5CF6]">Productions</span>
             </p>
             <p className="text-gray-600 text-sm mb-4">
-              Professional beats, mixing & mastering
+              {t('footer.tagline')}
             </p>
             <p className="text-gray-600 text-sm">
-              Trier, Germany
+              {t('footer.location')}
             </p>
           </div>
 
           {/* Services */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm">Services</h4>
+            <h4 className="font-semibold text-white mb-4 text-sm">{t('footer.servicesTitle')}</h4>
             <div className="flex flex-col gap-2">
-              <a href="/beats" className="text-gray-500 hover:text-white transition text-sm">Beat Store</a>
-              <a href="/mixing" className="text-gray-500 hover:text-white transition text-sm">Mix & Master</a>
-              <a href="/studio" className="text-gray-500 hover:text-white transition text-sm">Studio Sessions</a>
+              <a href={`/${locale}/beats`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.beatStore')}</a>
+              <a href={`/${locale}/mixing`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.mixMaster')}</a>
+              <a href={`/${locale}/studio`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.studioSessions')}</a>
             </div>
           </div>
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm">Company</h4>
+            <h4 className="font-semibold text-white mb-4 text-sm">{t('footer.companyTitle')}</h4>
             <div className="flex flex-col gap-2">
-              <a href="/about" className="text-gray-500 hover:text-white transition text-sm">About</a>
-              <a href="/contact" className="text-gray-500 hover:text-white transition text-sm">Contact</a>
+              <a href={`/${locale}/about`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.about')}</a>
+              <a href={`/${locale}/contact`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.contact')}</a>
             </div>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm">Legal</h4>
+            <h4 className="font-semibold text-white mb-4 text-sm">{t('footer.legalTitle')}</h4>
             <div className="flex flex-col gap-2">
-              <a href="/impressum" className="text-gray-500 hover:text-white transition text-sm">Impressum</a>
-              <a href="/privacy" className="text-gray-500 hover:text-white transition text-sm">Privacy Policy</a>
-              <a href="/terms" className="text-gray-500 hover:text-white transition text-sm">Terms & Conditions</a>
+              <a href={`/${locale}/impressum`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.impressum')}</a>
+              <a href={`/${locale}/privacy`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.privacy')}</a>
+              <a href={`/${locale}/terms`} className="text-gray-500 hover:text-white transition text-sm">{t('footer.terms')}</a>
             </div>
           </div>
         </div>
@@ -62,7 +65,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-600 text-sm">
-            © {currentYear} TR Productions. All rights reserved.
+            © {currentYear} TR Productions. {t('footer.allRightsReserved')}
           </p>
 
           {/* Social Links */}
